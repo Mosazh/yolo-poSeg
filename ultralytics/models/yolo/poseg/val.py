@@ -110,7 +110,7 @@ class PoSegValidator(DetectionValidator):
             self.args.iou,
             labels=self.lb,
             multi_label=True,
-            agnostic=self.args.single_cls,
+            agnostic=self.args.single_cls or self.args.agnostic_nms,
             max_det=self.args.max_det,
             nc=self.nc,
         )
@@ -120,7 +120,7 @@ class PoSegValidator(DetectionValidator):
             self.args.iou,
             labels=self.lb,
             multi_label=True,
-            agnostic=self.args.single_cls,
+            agnostic=self.args.single_cls or self.args.agnostic_nms,
             max_det=self.args.max_det,
             nc=self.nc,
         )
@@ -181,13 +181,8 @@ class PoSegValidator(DetectionValidator):
             if nl:
                 stat["tp"] = self._process_batch(predn_seg, bbox, cls)
                 stat["tp_m"] = self._process_batch(
-                    predn_seg,
-                    bbox,
-                    cls,
-                    pred_masks=pred_masks,
-                    gt_masks=gt_masks,
-                    overlap=self.args.overlap_mask,
-                    masks=True,
+                    predn_seg, bbox, cls, pred_masks=pred_masks,
+                    gt_masks=gt_masks, overlap=self.args.overlap_mask, masks=True,
                 )
                 stat["tp_p"] = self._process_batch(predn_kpt, bbox, cls, pred_kpts=pred_kpts, gt_kpts=pbatch["kpts"])
                 if self.args.plots:

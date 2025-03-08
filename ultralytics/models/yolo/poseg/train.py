@@ -60,8 +60,6 @@ class PoSegTrainer(yolo.detect.DetectionTrainer):
         images = batch["img"]
         kpts = batch["keypoints"]
         masks=batch["masks"],
-        print('ooooooooooooooooooooooooooooooooooooooooooo')
-        print(type(masks))
         cls = batch["cls"].squeeze(-1)
         bboxes = batch["bboxes"]
         paths = batch["im_file"]

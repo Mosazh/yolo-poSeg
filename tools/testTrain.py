@@ -5,4 +5,4 @@ from ultralytics import YOLO
 model = YOLO("yolov8-poseg.yaml")
 
 # Train the model
-results = model.train(data="cocoTest-poseg.yaml", epochs=4, imgsz=640, batch=2)
+results = model.train(data="cocoTest-poseg.yaml", epochs=100, imgsz=640, batch=32)

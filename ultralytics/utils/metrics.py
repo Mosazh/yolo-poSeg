@@ -1219,7 +1219,6 @@ class PoSegMetrics(SimpleClass):
             conf (list): List of confidence scores.
             pred_cls (list): List of predicted classes.
             target_cls (list): List of target classes.
-            on_plot (func): An optional callback to pass plots path and data when they are rendered. Defaults to None.
         """
         results_pose = ap_per_class(
             tp_p,
@@ -1280,14 +1279,6 @@ class PoSegMetrics(SimpleClass):
             "metrics/mAP50(P)",
             "metrics/mAP50-95(P)",
         ]
-
-    def mean_pose_results(self):
-        """Return the mean results of box and pose."""
-        return self.box.mean_results() + self.pose.mean_results()
-
-    def mean_seg_results(self):
-        """Return the mean metrics for bounding box and segmentation results."""
-        return self.box.mean_results() + self.seg.mean_results()
 
     def mean_results(self):
         """Return the mean results of box and pose."""

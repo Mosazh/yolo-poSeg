@@ -1083,6 +1083,8 @@ def plot_images(
         bboxes = bboxes.cpu().numpy()
     if isinstance(masks, torch.Tensor):
         masks = masks.cpu().numpy().astype(int)
+    elif isinstance(masks, tuple):
+        masks = masks[0]
 
     if isinstance(kpts, torch.Tensor):
         kpts = kpts.cpu().numpy()
@@ -1165,8 +1167,6 @@ def plot_images(
 
             # Plot masks
             if len(masks):
-                print('-------------------------------------')
-                print(type(masks))
                 if idx.shape[0] == masks.shape[0]:  # overlap_masks=False
                     image_masks = masks[idx]
                 else:  # overlap_masks=True

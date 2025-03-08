@@ -670,12 +670,12 @@ class PoSeg(Detect):
         x = self.detect(self, x)
         if self.training:
             return x, mc, p, kpt
-        pred_kpt = self.kpts_decode(bs, kpt)
-        output = (
-            ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1))
-            if self.export
-            else ((torch.cat([x[0], mc], 1), torch.cat([x[0], pred_kpt], 1)), (x[1], mc, p, kpt))
-        )
+        pred_kpt = self.kpts_decode(bs, kpt) # decode keypoints coordinates
+
+        if self.export:
+            output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1))
+        else:
+            output = ((torch.cat([x[0], mc], 1), torch.cat([x[0], pred_kpt], 1)), (x[1], mc, p, kpt))
 
         return output
 
