@@ -1083,6 +1083,7 @@ def plot_images(
         bboxes = bboxes.cpu().numpy()
     if isinstance(masks, torch.Tensor):
         masks = masks.cpu().numpy().astype(int)
+
     if isinstance(kpts, torch.Tensor):
         kpts = kpts.cpu().numpy()
     if isinstance(batch_idx, torch.Tensor):
@@ -1164,6 +1165,8 @@ def plot_images(
 
             # Plot masks
             if len(masks):
+                print('-------------------------------------')
+                print(type(masks))
                 if idx.shape[0] == masks.shape[0]:  # overlap_masks=False
                     image_masks = masks[idx]
                 else:  # overlap_masks=True
@@ -1199,7 +1202,7 @@ def plot_images(
 
 
 @plt_settings()
-def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, classify=False, on_plot=None):
+def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, classify=False, poseg=False, on_plot=None):
     """
     Plot training results from a results CSV file. The function supports various types of data including segmentation,
     pose estimation, and classification. Plots are saved as 'results.png' in the directory where the CSV is located.
@@ -1233,6 +1236,9 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
     elif pose:
         fig, ax = plt.subplots(2, 9, figsize=(21, 6), tight_layout=True)
         index = [2, 3, 4, 5, 6, 7, 8, 11, 12, 15, 16, 17, 18, 19, 9, 10, 13, 14]
+    elif poseg:
+        fig, ax = plt.subplots(2, 10, figsize=(24, 6), tight_layout=True)
+        index = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
     else:
         fig, ax = plt.subplots(2, 5, figsize=(12, 6), tight_layout=True)
         index = [2, 3, 4, 5, 6, 9, 10, 11, 7, 8]
@@ -1381,7 +1387,7 @@ def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detec
         n (int, optional): Maximum number of feature maps to plot. Defaults to 32.
         save_dir (Path, optional): Directory to save results. Defaults to Path('runs/detect/exp').
     """
-    for m in {"Detect", "Segment", "Pose", "Classify", "OBB", "RTDETRDecoder"}:  # all model heads
+    for m in {"Detect", "Segment", "Pose", "PoSeg", "Classify", "OBB", "RTDETRDecoder"}:  # all model heads
         if m in module_type:
             return
     if isinstance(x, torch.Tensor):

@@ -52,6 +52,7 @@ from ultralytics.nn.modules import (
     ImagePoolingAttn,
     Index,
     Pose,
+    PoSeg, # custom
     RepC3,
     RepConv,
     RepNCSPELAN4,
@@ -71,7 +72,7 @@ from ultralytics.utils.loss import (
     v8ClassificationLoss,
     v8DetectionLoss,
     v8OBBLoss,
-    v8PoseLoss,
+    v8PoSegLoss,
     v8SegmentationLoss,
 )
 from ultralytics.utils.ops import make_divisible
@@ -256,7 +257,7 @@ class BaseModel(torch.nn.Module):
         """
         self = super()._apply(fn)
         m = self.model[-1]  # Detect()
-        if isinstance(m, Detect):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, PoSeg)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             m.stride = fn(m.stride)
             m.anchors = fn(m.anchors)
             m.strides = fn(m.strides)
@@ -322,7 +323,7 @@ class DetectionModel(BaseModel):
 
         # Build strides
         m = self.model[-1]  # Detect()
-        if isinstance(m, Detect):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
+        if isinstance(m, (Detect, PoSeg)):  # includes all Detect subclasses like Segment, Pose, OBB, WorldDetect
             s = 256  # 2x min stride
             m.inplace = self.inplace
 
@@ -330,7 +331,7 @@ class DetectionModel(BaseModel):
                 """Performs a forward pass through the model, handling different Detect subclass types accordingly."""
                 if self.end2end:
                     return self.forward(x)["one2many"]
-                return self.forward(x)[0] if isinstance(m, (Segment, Pose, OBB)) else self.forward(x)
+                return self.forward(x)[0] if isinstance(m, (Segment, Pose, PoSeg, OBB)) else self.forward(x)
 
             m.stride = torch.tensor([s / x.shape[-2] for x in _forward(torch.zeros(1, ch, s, s))])  # forward
             self.stride = m.stride
@@ -426,7 +427,7 @@ class PoseModel(DetectionModel):
 
     def init_criterion(self):
         """Initialize the loss criterion for the PoseModel."""
-        return v8PoseLoss(self)
+        return v8PoSegLoss(self)
 
 
 class ClassificationModel(BaseModel):
@@ -696,6 +697,74 @@ class Ensemble(torch.nn.ModuleList):
         y = torch.cat(y, 2)  # nms ensemble, y shape(B, HW, C)
         return y, None  # inference, train output
 
+
+""" custom task Model """
+class PoSegModel(DetectionModel):
+    """YOLO pose and segmenttation multitask model."""
+    def __init__(self, cfg="yolov8-poseg.yaml", ch=3, nc=None, data_kpt_shape=(None, None), verbose=True):
+        """Initialize YOLO pose and segmenttation multitask model with given config and parameters."""
+        if not isinstance(cfg, dict):
+            cfg = yaml_model_load(cfg)  # load model YAML
+        if any(data_kpt_shape) and list(data_kpt_shape) != list(cfg["kpt_shape"]):
+            LOGGER.info(f"Overriding model.yaml kpt_shape={cfg['kpt_shape']} with kpt_shape={data_kpt_shape}")
+            cfg["kpt_shape"] = data_kpt_shape
+        super().__init__(cfg=cfg, ch=ch, nc=nc, verbose=verbose)
+
+    def init_criterion(self):
+        """Initialize the loss criterion for the SegmentationModel."""
+        return v8PoSegLoss(self)
+
+    def _predict_augment(self, x):
+        """Perform augmentations on input image x and return augmented inference and train outputs."""
+        img_size = x.shape[-2:]  # height, width
+        s = [1, 0.83, 0.67]  # scales
+        f = [None, 3, None]  # flips (2-ud, 3-lr)
+        y = []  # outputs
+        for si, fi in zip(s, f):
+            xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride.max()))
+            yi = super().predict(xi)[0]  # forward
+            yi = self._descale_pred(yi, fi, si, img_size)
+            y.append(yi)
+        y = self._clip_augmented(y)  # clip augmented tails
+        return y  # augmented inference, train
+
+    @staticmethod
+    def _descale_pred(p, flips, scale, img_size, dim=1):
+        """De-scale predictions following augmented inference (inverse operation)."""
+        p_seg, p_kpt = p
+
+        p_seg[:, :4] /= scale  # de-scale
+        x, y, wh, cls = p_seg.split((1, 1, 2, p_seg.shape[dim] - 4), dim)
+        if flips == 2:
+            y = img_size[0] - y  # de-flip ud
+        elif flips == 3:
+            x = img_size[1] - x  # de-flip lr
+        p_seg_upscaled = torch.cat((x, y, wh, cls), dim)
+
+        p_kpt[:, :4] /= scale  # de-scale
+        x, y, wh, cls = p_kpt.split((1, 1, 2, p_kpt.shape[dim] - 4), dim)
+        if flips == 2:
+            y = img_size[0] - y
+        elif flips == 3:
+            x = img_size[1] - x
+        p_kpt_upscaled = torch.cat((x, y, wh, cls), dim)
+
+        return (p_seg_upscaled, p_kpt_upscaled)
+
+    def _clip_augmented(self, y):
+        """Clip YOLO augmented inference tails."""
+        nl = self.model[-1].nl  # number of detection layers (P3-P5)
+        g = sum(4**x for x in range(nl))  # grid points
+        e = 1  # exclude layer count
+        i_s = (y[0][0].shape[-1] // g) * sum(4**x for x in range(e))  # indices
+        i_k = (y[0][1].shape[-1] // g) * sum(4**x for x in range(e))  # indices
+        y[0] = (y[0][0][..., :-i_s], y[0][1][..., :-i_k])  # large
+
+        i_s = (y[-1][0].shape[-1] // g) * sum(4 ** (nl - 1 - x) for x in range(e))  # indices
+        i_k = (y[-1][1].shape[-1] // g) * sum(4 ** (nl - 1 - x) for x in range(e))  # indices
+        y[-1] = (y[-1][0][..., i_s:], y[-1][1][..., i_k:])  # small
+
+        return y
 
 # Functions ------------------------------------------------------------------------------------------------------------
 
@@ -1055,9 +1124,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [ch[f]]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
-        elif m in frozenset({Detect, WorldDetect, Segment, Pose, OBB, ImagePoolingAttn, v10Detect}):
+        elif m in frozenset({Detect, WorldDetect, Segment, Pose, PoSeg, OBB, ImagePoolingAttn, v10Detect}):
             args.append([ch[x] for x in f])
-            if m is Segment:
+            if m is Segment or m is PoSeg:
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
             if m in {Detect, Segment, Pose, OBB}:
                 m.legacy = legacy
@@ -1151,6 +1220,8 @@ def guess_model_task(model):
             return "pose"
         if m == "obb":
             return "obb"
+        if m == "poseg":
+            return "poseg"
 
     # Guess from model cfg
     if isinstance(model, dict):
@@ -1173,6 +1244,8 @@ def guess_model_task(model):
                 return "pose"
             elif isinstance(m, OBB):
                 return "obb"
+            elif isinstance(m, PoSeg):
+                return "poseg"
             elif isinstance(m, (Detect, WorldDetect, v10Detect)):
                 return "detect"
 
@@ -1187,12 +1260,14 @@ def guess_model_task(model):
             return "pose"
         elif "-obb" in model.stem or "obb" in model.parts:
             return "obb"
+        elif "-poseg" in model.stem or "poseg" in model.parts:
+            return "poseg"
         elif "detect" in model.parts:
             return "detect"
 
     # Unable to determine task from model
     LOGGER.warning(
         "WARNING ⚠️ Unable to automatically guess model task, assuming 'task=detect'. "
-        "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify','pose' or 'obb'."
+        "Explicitly define task for your model, i.e. 'task=detect', 'segment', 'classify','pose', 'poseg', or 'obb'."
     )
     return "detect"  # assume detect
