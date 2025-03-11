@@ -60,11 +60,11 @@ class PoSegValidator(DetectionValidator):
             "R",
             "mAP50",
             "mAP50-95)",
-            "Mask(P",
+            "Pose(P",
             "R",
             "mAP50",
             "mAP50-95)",
-            "Pose(P",
+            "Mask(P",
             "R",
             "mAP50",
             "mAP50-95)",
@@ -101,7 +101,6 @@ class PoSegValidator(DetectionValidator):
         pbatch["kpts"] = kpts
         return pbatch
 
-    # seg
     def postprocess(self, preds):
         """Post-processes YOLO predictions and returns output detections with proto."""
         p_seg = ops.non_max_suppression(
@@ -124,10 +123,10 @@ class PoSegValidator(DetectionValidator):
             max_det=self.args.max_det,
             nc=self.nc,
         )
-        proto = (
+        protos = (
             preds[1][-2] if len(preds[1]) == 4 else preds[0][1]
         )  # second output is len 4 if pt, but only 1 if exported
-        return (p_seg, p_pose), proto
+        return (p_seg, p_pose), protos
 
     def _prepare_pred(self, pred_seg, pred_kpt, pbatch, proto):
         """

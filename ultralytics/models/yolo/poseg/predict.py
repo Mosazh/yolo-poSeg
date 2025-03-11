@@ -54,7 +54,7 @@ class PoSegPredictor(DetectionPredictor):
             orig_imgs = ops.convert_torch2numpy_batch(orig_imgs)
 
         results = []
-        proto = (
+        protos = (
             preds[1][-2] if len(preds[1]) == 4 else preds[0][1]
         )  # second output is len 4 if pt, but only 1 if exported
         for i, (pred_seg, pred_kpt) in enumerate(zip(p_seg, p_pose)):
