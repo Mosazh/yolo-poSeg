@@ -9,7 +9,7 @@ from .dataset import (
     YOLOConcatDataset,
     YOLODataset,
     YOLOMultiModalDataset,
-    PoSegDataset,
+    # PoSegDataset,
 )
 
 __all__ = (
@@ -24,5 +24,5 @@ __all__ = (
     "build_grounding",
     "build_dataloader",
     "load_inference_source",
-    "PoSegDataset",
+    # "PoSegDataset",
 )

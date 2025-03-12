@@ -97,7 +97,7 @@ def verify_image(args):
 def verify_image_label(args):
     """Verify one image-label pair."""
     # im_file, lb_file, prefix, keypoint, num_cls, nkpt, ndim = args
-    im_file, lb_file, prefix, keypoint, num_cls, nkpt, ndim, kpt_names = args
+    im_file, lb_file, prefix, keypoint, num_cls, nkpt, ndim = args
 
     # Number (missing, found, empty, corrupt), message, segments, keypoints
     nm, nf, ne, nc, msg, segments, keypoints = 0, 0, 0, 0, "", [], None
@@ -210,7 +210,7 @@ def verify_image_multitask_label(args):
                         ],
                         dtype=np.float32,
                     )  # (cls, pxy1..., xy1...)
-                    segments = [
+                    segments =[
                         np.array(x[nkpt * ndim + 1 :], dtype=np.float32).reshape(-1, 2)
                         if int(x[0]) in kpt_names.keys()
                         else np.array(x[1:], dtype=np.float32).reshape(-1, 2)

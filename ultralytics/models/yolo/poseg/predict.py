@@ -77,10 +77,10 @@ class PoSegPredictor(DetectionPredictor):
                 masks = None
             elif self.args.retina_masks:
                 pred_seg[:, :4] = ops.scale_boxes(img.shape[2:], pred_seg[:, :4], orig_img.shape)
-                masks = ops.process_mask_native(proto[i], pred_seg[:, 6:], pred_seg[:, :4], orig_img.shape[:2])  # HWC
+                masks = ops.process_mask_native(protos[i], pred_seg[:, 6:], pred_seg[:, :4], orig_img.shape[:2])  # HWC
             else:
                 masks = ops.process_mask(
-                    proto[i], pred_seg[:, 6:], pred_seg[:, :4], img.shape[2:], upsample=True
+                    protos[i], pred_seg[:, 6:], pred_seg[:, :4], img.shape[2:], upsample=True
                 )  # HWC
                 pred_seg[:, :4] = ops.scale_boxes(img.shape[2:], pred_seg[:, :4], orig_img.shape)
             results.append(

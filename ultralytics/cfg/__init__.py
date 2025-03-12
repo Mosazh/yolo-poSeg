@@ -55,7 +55,7 @@ TASK2DATA = {
     "classify": "imagenet10",
     "pose": "coco8-pose.yaml",
     "obb": "dota8.yaml",
-    "poseg": "coco8-pose.yaml",
+    "poseg": "cocoTest-poseg.yaml",
 }
 TASK2MODEL = {
     "detect": "yolo11n.pt",

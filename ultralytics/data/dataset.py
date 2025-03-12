@@ -541,17 +541,18 @@ class ClassificationDataset:
             return samples
 
 """ custom dataset """
+'''
 class PoSegDataset(YOLODataset):
     def __init__(self, *args, data=None, task="poseg", **kwargs):
-        """初始化 PoSegDataset，启用姿态和分割任务。
+        """Init PoSegDataset, enable pose and segmentation tasks.
 
         Args:
-            data (dict): 数据配置文件，例如 data.yaml，包含 kpt_shape 和 names。
-            task (str): 任务类型，默认为 'poseg'。
+            data (dict): data.yaml
+            task (str):  task type
         """
-        self.use_segments = True  # 启用分割任务
-        self.use_keypoints = True  # 启用姿态任务
-        self.data = data  # 保存数据配置
+        self.use_segments = True  # segment task
+        self.use_keypoints = True       # pose task
+        self.data = data             # save data config
         super().__init__(*args, data=self.data, task=task, **kwargs)
 
     def cache_labels(self, path=Path("./labels.cache")):
@@ -624,3 +625,4 @@ class PoSegDataset(YOLODataset):
         save_dataset_cache_file(self.prefix, path, x, DATASET_CACHE_VERSION)
         return x
 
+'''
