@@ -2,13 +2,13 @@
 # https://github.com/stedavkle/ultralytics/blob/multitask/ultralytics/models/yolo/multitask/train.py
 
 from copy import copy
-
 from ultralytics.models import yolo
 from ultralytics.nn.tasks import PoSegModel
 from ultralytics.utils import DEFAULT_CFG, LOGGER, RANK
 from ultralytics.utils.plotting import plot_images, plot_results
+from ultralytics.models.yolo.detect import DetectionTrainer
 
-class PoSegTrainer(yolo.detect.DetectionTrainer):
+class PoSegTrainer(DetectionTrainer):
     """
     A class extending the DetectionTrainer class for training based on a pose and segmentation model.
 

@@ -7,7 +7,9 @@
 # # Thank https://github.com/ultralytics/ultralytics/issues/6949
 
 # Parameters
-nc: 1 # number of classes
+# nc_pose: 1 # number of pose classes
+# nc_seg: 80 # number of seg classes
+nc: 80
 kpt_shape: [17, 3] # number of keypoints, number of dims (2 for x,y or 3 for x,y,visible)
 scales: # model compound scaling constants, i.e. 'model=yolov8n-pose.yaml' will call yolov8-pose.yaml with scale 'n'
   # [depth, width, max_channels]

@@ -1271,35 +1271,35 @@ class PoSegMetrics(SimpleClass):
             "metrics/recall(B)",
             "metrics/mAP50(B)",
             "metrics/mAP50-95(B)",
-            "metrics/precision(P)", # pose
-            "metrics/recall(P)",
-            "metrics/mAP50(P)",
-            "metrics/mAP50-95(P)",
             "metrics/precision(M)", # mask
             "metrics/recall(M)",
             "metrics/mAP50(M)",
             "metrics/mAP50-95(M)",
+            "metrics/precision(P)", # pose
+            "metrics/recall(P)",
+            "metrics/mAP50(P)",
+            "metrics/mAP50-95(P)",
         ]
 
     def mean_results(self):
         """Return the mean results of box and pose."""
         """Return the mean metrics for bounding box and segmentation results."""
-        return self.box.mean_results() + self.pose.mean_results() + self.seg.mean_results()
+        return self.box.mean_results() + self.seg.mean_results() + self.pose.mean_results()
 
     def class_result(self, i):
         """Return the class-wise detection results for a specific class i."""
-        return self.box.class_result(i) + self.pose.class_result(i) + self.seg.class_result(i)
+        return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(i)
 
     @property
     def maps(self):
         """Returns the mean average precision (mAP) per class for both box and pose detections."""
         """Returns mAP scores for object detection and semantic segmentation models."""
-        return self.box.maps + self.pose.maps + self.seg.maps
+        return self.box.maps + self.seg.maps + self.pose.maps
 
     @property
     def fitness(self):
         """Computes classification metrics and speed using the `targets` and `pred` inputs."""
-        return self.pose.fitness() + self.seg.fitness()  + self.box.fitness()
+        return self.box.fitness() + self.seg.fitness() + self.pose.fitness()
 
     @property
     def ap_class_index(self):
@@ -1319,14 +1319,14 @@ class PoSegMetrics(SimpleClass):
             "F1-Confidence(B)",
             "Precision-Confidence(B)",
             "Recall-Confidence(B)",
-            "Precision-Recall(P)",
-            "F1-Confidence(P)",
-            "Precision-Confidence(P)",
-            "Recall-Confidence(P)",
             "Precision-Recall(M)",
             "F1-Confidence(M)",
             "Precision-Confidence(M)",
             "Recall-Confidence(M)",
+            "Precision-Recall(P)",
+            "F1-Confidence(P)",
+            "Precision-Confidence(P)",
+            "Recall-Confidence(P)",
         ]
 
     @property

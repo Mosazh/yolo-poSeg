@@ -208,7 +208,7 @@ class PoSegValidator(DetectionValidator):
         self.metrics.speed = self.speed
         self.metrics.confusion_matrix = self.confusion_matrix
 
-    def _process_batch(self, detections, gt_bboxes, gt_cls, pred_kpts=None, gt_kpts=None, pred_masks=None, gt_masks=None, overlap=True, masks=True):
+    def _process_batch(self, detections, gt_bboxes, gt_cls, pred_kpts=None, gt_kpts=None, pred_masks=None, gt_masks=None, overlap=False, masks=False):
 
         if masks:
             if overlap:

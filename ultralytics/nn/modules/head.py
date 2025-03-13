@@ -673,25 +673,55 @@ class PoSeg(Detect):
         pred_kpt = self.kpts_decode(bs, kpt) # decode keypoints coordinates
 
         if self.export:
-            output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1))
+            output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1)) # output[0]-seg, output[1]-pose
         else:
             output = ((torch.cat([x[0], mc], 1), torch.cat([x[0], pred_kpt], 1)), (x[1], mc, p, kpt))
 
         return output
 
+    # def kpts_decode(self, bs, kpts):
+    #     """Decodes keypoints."""
+    #     ndim = self.kpt_shape[1]
+    #     if self.export:  # required for TFLite export to avoid 'PLACEHOLDER_FOR_GREATER_OP_CODES' bug
+    #         y = kpts.view(bs, *self.kpt_shape, -1)
+    #         a = (y[:, :, :2] * 2.0 + (self.anchors - 0.5)) * self.strides
+    #         if ndim == 3:
+    #             a = torch.cat((a, y[:, :, 2:3].sigmoid()), 2)
+    #         return a.view(bs, self.nk, -1)
+    #     else:
+    #         y = kpts.clone()
+    #         if ndim == 3:
+    #             # y[:, 2::3].sigmoid_()  # inplace sigmoid
+    #             y[:, 2::3] = y[:, 2::3].sigmoid()
+    #         y[:, 0::ndim] = (y[:, 0::ndim] * 2.0 + (self.anchors[0] - 0.5)) * self.strides
+    #         y[:, 1::ndim] = (y[:, 1::ndim] * 2.0 + (self.anchors[1] - 0.5)) * self.strides
+    #         return y
+
     def kpts_decode(self, bs, kpts):
         """Decodes keypoints."""
         ndim = self.kpt_shape[1]
-        if self.export:  # required for TFLite export to avoid 'PLACEHOLDER_FOR_GREATER_OP_CODES' bug
-            y = kpts.view(bs, *self.kpt_shape, -1)
-            a = (y[:, :, :2] * 2.0 + (self.anchors - 0.5)) * self.strides
+        if self.export:
+            if self.format in {
+                "tflite",
+                "edgetpu",
+            }:  # required for TFLite export to avoid 'PLACEHOLDER_FOR_GREATER_OP_CODES' bug
+                # Precompute normalization factor to increase numerical stability
+                y = kpts.view(bs, *self.kpt_shape, -1)
+                grid_h, grid_w = self.shape[2], self.shape[3]
+                grid_size = torch.tensor([grid_w, grid_h], device=y.device).reshape(1, 2, 1)
+                norm = self.strides / (self.stride[0] * grid_size)
+                a = (y[:, :, :2] * 2.0 + (self.anchors - 0.5)) * norm
+            else:
+                # NCNN fix
+                y = kpts.view(bs, *self.kpt_shape, -1)
+                a = (y[:, :, :2] * 2.0 + (self.anchors - 0.5)) * self.strides
             if ndim == 3:
                 a = torch.cat((a, y[:, :, 2:3].sigmoid()), 2)
             return a.view(bs, self.nk, -1)
         else:
             y = kpts.clone()
             if ndim == 3:
-                y[:, 2::3].sigmoid_()  # inplace sigmoid
+                y[:, 2::3] = y[:, 2::3].sigmoid()  # sigmoid (WARNING: inplace .sigmoid_() Apple MPS bug)
             y[:, 0::ndim] = (y[:, 0::ndim] * 2.0 + (self.anchors[0] - 0.5)) * self.strides
             y[:, 1::ndim] = (y[:, 1::ndim] * 2.0 + (self.anchors[1] - 0.5)) * self.strides
             return y
