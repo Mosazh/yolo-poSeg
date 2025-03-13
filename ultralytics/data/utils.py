@@ -171,7 +171,8 @@ def verify_image_label(args):
 def verify_image_multitask_label(args):
     """Verify one image-label pair."""
     im_file, lb_file, prefix, keypoint, num_cls, nkpt, ndim, kpt_names = args
-
+    if im_file == '/home/Mos/Documents/Complex/MyStudy/new_yolo/datasets/coco128-poseg/images/train/000000000139.jpg':
+        print(im_file)
     # Number (missing, found, empty, corrupt), message, segments, keypoints
     nm, nf, ne, nc, msg, segments, keypoints = 0, 0, 0, 0, "", [], None
     try:

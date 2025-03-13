@@ -610,6 +610,7 @@ class v8PoSegLoss(v8DetectionLoss):
     def __call__(self, preds, batch):
         """Calculate and return the loss for the YOLO model."""
         loss = torch.zeros(6, device=self.device)  # box, seg, cls, dfl, kpt_location, kpt_visibility
+        # preds == x, mc, p, kpt
         feats, pred_masks, proto, pred_kpts = preds if len(preds) == 4 else preds[1]
 
         batch_size, _, mask_h, mask_w = proto.shape  # batch size, number of masks, mask height, mask width
