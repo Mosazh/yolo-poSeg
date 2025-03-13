@@ -126,7 +126,7 @@ WARNING ⚠️ no model scale passed. Assuming scale='n'.
   8                  -1  1    460288  ultralytics.nn.modules.block.C2f             [256, 256, 1, True]
   9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]
  10                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
- 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]
+ 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
  12                  -1  1    148224  ultralytics.nn.modules.block.C2f             [384, 128, 1]
  13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
  14             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]
@@ -138,12 +138,11 @@ WARNING ⚠️ no model scale passed. Assuming scale='n'.
  20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]
  21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]
  22        [15, 18, 21]  1   1035934  ultralytics.nn.modules.head.Pose             [1, [17, 3], [64, 128, 256]]
-YOLOv8-pose summary: 250 layers, 3295470 parameters, 3295454 gradients, 9.3 GFLOPs
+YOLOv8-pose summary: 144 layers, 3,295,470 parameters, 3,295,454 gradients, 9.3 GFLOPs
 ```
 
 ## 原始 yolov8n-seg 模型结构
 ``` text
-
 WARNING ⚠️ no model scale passed. Assuming scale='n'.
 
                    from  n    params  module                                       arguments
@@ -170,7 +169,7 @@ WARNING ⚠️ no model scale passed. Assuming scale='n'.
  20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]
  21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]
  22        [15, 18, 21]  1   1150432  ultralytics.nn.modules.head.Segment          [80, 32, 64, [64, 128, 256]]
-YOLOv8-seg summary: 261 layers, 3409968 parameters, 3409952 gradients, 12.8 GFLOPs
+YOLOv8-seg summary: 151 layers, 3,409,968 parameters, 3,409,952 gradients, 12.8 GFLOPs
 ```
 
 ## 我的模型结构 yolov8n-poseg (error)

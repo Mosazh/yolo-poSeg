@@ -639,14 +639,14 @@ class PoSeg(Detect):
         self.nm = nm  # number of masks
         self.npr = npr  # number of protos
         self.proto = Proto(ch[0], self.npr, self.nm)  # protos
-        self.detect = Detect.forward
 
+        # segmentation branch
         c4_seg = max(ch[0] // 4, self.nm)
         self.cv4_seg = nn.ModuleList(
             nn.Sequential(Conv(x, c4_seg, 3), Conv(c4_seg, c4_seg, 3), nn.Conv2d(c4_seg, self.nm, 1)) for x in ch
         )
 
-        # Initialize pose components
+        # pose branch
         self.kpt_shape = kpt_shape  # number of keypoints, number of dims (2 for x,y or 3 for x,y,visible)
         self.nk = kpt_shape[0] * kpt_shape[1]  # number of keypoints total
         c4_pose = max(ch[0] // 4, self.nk)
@@ -654,11 +654,10 @@ class PoSeg(Detect):
             nn.Sequential(Conv(x, c4_pose, 3), Conv(c4_pose, c4_pose, 3), nn.Conv2d(c4_pose, self.nk, 1)) for x in ch
         )
 
+
     def forward(self, x):
         """
         Returns a tuple of mask and keypoint detections.
-
-        Returns mask coefficients if training, otherwise return outputs and mask coefficients.
         """
         # Process segmentation
         p = self.proto(x[0])  # mask protos
@@ -667,35 +666,19 @@ class PoSeg(Detect):
 
         # Process pose
         kpt = torch.cat([self.cv4_pose[i](x[i]).view(bs, self.nk, -1) for i in range(self.nl)], -1)  # (bs, 17*3, h*w)
-        x = self.detect(self, x)
+
+        x = super().forward(x)
+
         if self.training:
             return x, mc, p, kpt
-        pred_kpt = self.kpts_decode(bs, kpt) # decode keypoints coordinates
 
+        # Inference and export
+        pred_kpt = self.kpts_decode(bs, kpt) # decode keypoints coordinates
         if self.export:
             output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1)) # output[0]-seg, output[1]-pose
         else:
             output = ((torch.cat([x[0], mc], 1), torch.cat([x[0], pred_kpt], 1)), (x[1], mc, p, kpt))
-
         return output
-
-    # def kpts_decode(self, bs, kpts):
-    #     """Decodes keypoints."""
-    #     ndim = self.kpt_shape[1]
-    #     if self.export:  # required for TFLite export to avoid 'PLACEHOLDER_FOR_GREATER_OP_CODES' bug
-    #         y = kpts.view(bs, *self.kpt_shape, -1)
-    #         a = (y[:, :, :2] * 2.0 + (self.anchors - 0.5)) * self.strides
-    #         if ndim == 3:
-    #             a = torch.cat((a, y[:, :, 2:3].sigmoid()), 2)
-    #         return a.view(bs, self.nk, -1)
-    #     else:
-    #         y = kpts.clone()
-    #         if ndim == 3:
-    #             # y[:, 2::3].sigmoid_()  # inplace sigmoid
-    #             y[:, 2::3] = y[:, 2::3].sigmoid()
-    #         y[:, 0::ndim] = (y[:, 0::ndim] * 2.0 + (self.anchors[0] - 0.5)) * self.strides
-    #         y[:, 1::ndim] = (y[:, 1::ndim] * 2.0 + (self.anchors[1] - 0.5)) * self.strides
-    #         return y
 
     def kpts_decode(self, bs, kpts):
         """Decodes keypoints."""
@@ -725,3 +708,4 @@ class PoSeg(Detect):
             y[:, 0::ndim] = (y[:, 0::ndim] * 2.0 + (self.anchors[0] - 0.5)) * self.strides
             y[:, 1::ndim] = (y[:, 1::ndim] * 2.0 + (self.anchors[1] - 0.5)) * self.strides
             return y
+
