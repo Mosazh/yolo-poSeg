@@ -667,7 +667,8 @@ class PoSeg(Detect):
         # Process pose
         kpt = torch.cat([self.cv4_pose[i](x[i]).view(bs, self.nk, -1) for i in range(self.nl)], -1)  # (bs, 17*3, h*w)
 
-        x = super().forward(x)
+        # x = super().forward(x)
+        x = Detect.forward(self, x)
         if self.training:
             return x, mc, p, kpt
 

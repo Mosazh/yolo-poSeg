@@ -1299,7 +1299,7 @@ class PoSegMetrics(SimpleClass):
     @property
     def fitness(self):
         """Computes classification metrics and speed using the `targets` and `pred` inputs."""
-        return self.box.fitness() + self.seg.fitness() + self.pose.fitness()
+        return (self.box.fitness() + self.seg.fitness() + self.pose.fitness()) / 3
 
     @property
     def ap_class_index(self):
@@ -1332,8 +1332,7 @@ class PoSegMetrics(SimpleClass):
     @property
     def curves_results(self):
         """Returns dictionary of computed performance metrics and statistics."""
-        return self.box.curves_results + self.pose.curves_results + + self.seg.curves_results
-
+        return self.box.curves_results + self.pose.curves_results + self.seg.curves_results
 
 
 class ClassifyMetrics(SimpleClass):

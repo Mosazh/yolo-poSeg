@@ -131,11 +131,11 @@ class PoSegValidator(DetectionValidator):
     def _prepare_pred(self, pred_seg, pred_kpt, pbatch, proto):
         """
         Prepares a batch for training or inference by processing images and targets.
-
         Scales keypoints in a batch for pose processing.
         """
         predn_seg = super()._prepare_pred(pred_seg, pbatch)
         predn_kpt = super()._prepare_pred(pred_kpt, pbatch)
+
         pred_masks = self.process(proto, pred_seg[:, 6:], pred_seg[:, :4], shape=pbatch["imgsz"])
 
         nk = pbatch["kpts"].shape[1]
@@ -247,12 +247,15 @@ class PoSegValidator(DetectionValidator):
 
     def plot_predictions(self, batch, preds, ni):
         """Plots batch predictions with keypoints, masks and bounding boxes."""
-        if len(preds[1]) == 4:
-            pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
-            batch_idx, cls, bboxes, confs = output_to_target(preds[0][1], max_det=self.args.max_det)
-        else:
-            pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[1]], 0)
-            batch_idx, cls, bboxes, confs = output_to_target(preds[1], max_det=self.args.max_det)
+        pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
+        batch_idx, cls, bboxes, confs = output_to_target(preds[0][1], max_det=self.args.max_det)
+        # print(f'----------------------len(preds[1]): {len(preds[1])}-------------------------')
+        # if len(preds[1]) / self.args.batch == 2:
+            # pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
+            # batch_idx, cls, bboxes, confs = output_to_target(preds[0][1], max_det=self.args.max_det)
+        # else:
+        #     pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[1]], 0)
+        #     batch_idx, cls, bboxes, confs = output_to_target(preds[1], max_det=self.args.max_det)
 
         plot_images(
             batch["img"],

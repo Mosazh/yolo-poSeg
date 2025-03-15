@@ -24,6 +24,9 @@ class PoSegPredictor(DetectionPredictor):
         """Initializes the PoSegTaskPredictor with the provided configuration, overrides, and callbacks."""
         super().__init__(cfg, overrides, _callbacks)
         self.args.task = "poseg"
+        if isinstance(self.args.device, str) and self.args.device.lower() == 'mps':
+            LOGGER.warning("WARNING ⚠️ Apple MPS known Pose bug. Recommend 'device=cpu' for Pose models. "
+                           'See https://github.com/ultralytics/ultralytics/issues/4031.')
 
     def postprocess(self, preds, img, orig_imgs):
         """
@@ -54,9 +57,8 @@ class PoSegPredictor(DetectionPredictor):
             orig_imgs = ops.convert_torch2numpy_batch(orig_imgs)
 
         results = []
-        protos = (
-            preds[1][-2] if len(preds[1]) == 4 else preds[0][1]
-        )  # second output is len 4 if pt, but only 1 if exported
+        protos = (preds[1][-2] if len(preds[1]) == 4 else preds[0][1])  # second output is len 4 if pt, but only 1 if exported
+
         for i, (pred_seg, pred_kpt) in enumerate(zip(p_seg, p_pose)):
             pred_seg.clone()
             pred_kpt_copy = pred_kpt.clone()

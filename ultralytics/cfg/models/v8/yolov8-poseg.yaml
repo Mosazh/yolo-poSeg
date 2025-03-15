@@ -19,6 +19,13 @@ scales: # model compound scaling constants, i.e. 'model=yolov8n-pose.yaml' will 
   l: [1.00, 1.00, 512]
   x: [1.00, 1.25, 512]
 
+loss_weights: 
+  box: 0.05
+  obj: 0.4
+  cls: 0.5
+  kpt: 1.0
+  seg: 0.8
+
 # YOLOv8.0n backbone
 backbone:
   # [from, repeats, module, args]
