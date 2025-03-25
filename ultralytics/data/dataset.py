@@ -89,7 +89,7 @@ class YOLODataset(BaseDataset):
             )
         if self.task == "poseg":
             kpt_names = self.data.get("kpt_names", {})
-            self.vil = verify_image_multitask_label
+            self.vil = verify_image_poseg_label
             iterable_zip = zip(
                 self.im_files,
                 self.label_files,

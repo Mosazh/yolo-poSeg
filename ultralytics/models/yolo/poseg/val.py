@@ -145,12 +145,11 @@ class PoSegValidator(DetectionValidator):
     def update_metrics(self, preds, batch):
         """Metrics."""
         for si, (pred_seg, pred_kpt, proto) in enumerate(zip(preds[0][0], preds[0][1], preds[1])):
-            print(f'++++++++++len of pred_seg : {len(pred_seg)}++++++++++', end="\n")
-            print(f'----------len of pred_seg : {len(pred_kpt)}----------', end="\n")
             self.seen += 1
             npr_seg = len(pred_seg)
             npr_pose = len(pred_kpt)
-            npr = npr_seg
+            npr = max(npr_seg, npr_pose) # for coco128-poseg dataset the mask box more than pose box
+
             stat = dict(
                 conf=torch.zeros(npr, device=self.device),
                 pred_cls=torch.zeros(0, device=self.device),
