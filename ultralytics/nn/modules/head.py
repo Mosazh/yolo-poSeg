@@ -674,8 +674,9 @@ class PoSeg(Detect):
         # Inference and export
         pred_kpt = self.kpts_decode(bs, kpt) # decode keypoints coordinates
         if self.export:
-            output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1)) # output[0]-seg, output[1]-pose
+            output = ((torch.cat([x, mc], 1), p), torch.cat([x, pred_kpt], 1))
         else:
+            # output[0][0]--seg, output[0][1]--pose
             output = ((torch.cat([x[0], mc], 1), torch.cat([x[0], pred_kpt], 1)), (x[1], mc, p, kpt))
         return output
 

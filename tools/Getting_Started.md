@@ -126,7 +126,7 @@ WARNING ⚠️ no model scale passed. Assuming scale='n'.
   8                  -1  1    460288  ultralytics.nn.modules.block.C2f             [256, 256, 1, True]
   9                  -1  1    164608  ultralytics.nn.modules.block.SPPF            [256, 256, 5]
  10                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
- 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]                           
+ 11             [-1, 6]  1         0  ultralytics.nn.modules.conv.Concat           [1]
  12                  -1  1    148224  ultralytics.nn.modules.block.C2f             [384, 128, 1]
  13                  -1  1         0  torch.nn.modules.upsampling.Upsample         [None, 2, 'nearest']
  14             [-1, 4]  1         0  ultralytics.nn.modules.conv.Concat           [1]
@@ -199,6 +199,6 @@ WARNING ⚠️ no model scale passed. Assuming scale='n'.
  19                  -1  1    147712  ultralytics.nn.modules.conv.Conv             [128, 128, 3, 2]
  20             [-1, 9]  1         0  ultralytics.nn.modules.conv.Concat           [1]
  21                  -1  1    493056  ultralytics.nn.modules.block.C2f             [384, 256, 1]
- 22        [15, 18, 21]  1   1002107  ultralytics.nn.modules.head.PoSeg            [80, 32, 64, [17, 3], [64, 128, 256]]
-YOLOv8-poseg summary: 178 layers, 3,261,643 parameters, 3,261,627 gradients, 12.1 GFLOPs
+ 22        [15, 18, 21]  1   1434859  ultralytics.nn.modules.head.PoSeg            [80, 32, 64, [17, 3], [64, 128, 256]]
+YOLOv8-poseg summary: 166 layers, 3,694,395 parameters, 3,694,379 gradients, 13.9 GFLOPs
 ```

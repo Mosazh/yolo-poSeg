@@ -103,30 +103,37 @@ class PoSegValidator(DetectionValidator):
 
     def postprocess(self, preds):
         """Post-processes YOLO predictions and returns output detections with proto."""
-        p_seg = ops.non_max_suppression(
-            preds[0][0],
-            self.args.conf,
-            self.args.iou,
-            labels=self.lb,
-            multi_label=True,
-            agnostic=self.args.single_cls or self.args.agnostic_nms,
-            max_det=self.args.max_det,
-            nc=self.nc,
-        )
-        p_pose = ops.non_max_suppression(
-            preds[0][1] if len(preds[1]) == 4 else preds[1],
-            self.args.conf,
-            self.args.iou,
-            labels=self.lb,
-            multi_label=True,
-            agnostic=self.args.single_cls or self.args.agnostic_nms,
-            max_det=self.args.max_det,
-            nc=self.nc,
-        )
-        protos = (
+        # p_seg = ops.non_max_suppression(
+        #     preds[0][0],
+        #     self.args.conf,
+        #     self.args.iou,
+        #     labels=self.lb,
+        #     multi_label=True,
+        #     agnostic=self.args.single_cls or self.args.agnostic_nms,
+        #     max_det=self.args.max_det,
+        #     nc=self.nc,
+        # )
+
+        # p_pose = ops.non_max_suppression(
+        #     preds[0][1] if len(preds[1]) == 4 else preds[1],
+        #     self.args.conf,
+        #     self.args.iou,
+        #     labels=self.lb,
+        #     multi_label=True,
+        #     agnostic=self.args.single_cls or self.args.agnostic_nms,
+        #     max_det=self.args.max_det,
+        #     nc=self.nc,
+        # )
+
+        p_pose = (preds[0][1], (preds[1][0], preds[1][3])) if len(preds[1]) == 4 else preds[1]
+        p_pose = super().postprocess(p_pose)
+        p_seg = super().postprocess(preds[0][0])
+
+        proto = (
             preds[1][-2] if len(preds[1]) == 4 else preds[0][1]
         )  # second output is len 4 if pt, but only 1 if exported
-        return (p_seg, p_pose), protos
+        
+        return (p_seg, p_pose), proto
 
     def _prepare_pred(self, pred_seg, pred_kpt, pbatch, proto):
         """
