@@ -1183,6 +1183,7 @@ def plot_images(
                         mh, mw = image_masks[j].shape
                         if mh != h or mw != w:
                             mask = image_masks[j].astype(np.uint8)
+                            # mask = image_masks[j].cpu().numpy().astype(np.uint8)
                             mask = cv2.resize(mask, (w, h))
                             mask = mask.astype(bool)
                         else:

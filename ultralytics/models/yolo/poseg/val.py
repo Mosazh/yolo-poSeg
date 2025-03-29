@@ -114,19 +114,19 @@ class PoSegValidator(DetectionValidator):
         #     nc=self.nc,
         # )
 
-        p_pose = ops.non_max_suppression(
-            preds[0][1] if len(preds[1]) == 4 else preds[1],
-            self.args.conf,
-            self.args.iou,
-            labels=self.lb,
-            multi_label=True,
-            agnostic=self.args.single_cls or self.args.agnostic_nms,
-            max_det=self.args.max_det,
-            nc=self.nc,
-        )
+        # p_pose = ops.non_max_suppression(
+        #     preds[0][1] if len(preds[1]) == 4 else preds[1],
+        #     self.args.conf,
+        #     self.args.iou,
+        #     labels=self.lb,
+        #     multi_label=True,
+        #     agnostic=self.args.single_cls or self.args.agnostic_nms,
+        #     max_det=self.args.max_det,
+        #     nc=self.nc,
+        # )
 
-        # p_pose = (preds[0][1], (preds[1][0], preds[1][3])) if len(preds[1]) == 4 else preds[1]
-        # p_pose = super().postprocess(p_pose)
+        p_pose = (preds[0][1], (preds[1][0], preds[1][3])) if len(preds[1]) == 4 else preds[1]
+        p_pose = super().postprocess(p_pose)
         p_seg = super().postprocess(preds[0][0])
 
         proto = (
@@ -270,15 +270,10 @@ class PoSegValidator(DetectionValidator):
 
     def plot_predictions(self, batch, preds, ni):
         """Plots batch predictions with keypoints, masks and bounding boxes."""
+
         pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
-        batch_idx, cls, bboxes, confs = output_to_target(preds[0][1], max_det=self.args.max_det)
-        # print(f'----------------------len(preds[1]): {len(preds[1])}-------------------------')
-        # if len(preds[1]) / self.args.batch == 2:
-            # pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
-            # batch_idx, cls, bboxes, confs = output_to_target(preds[0][1], max_det=self.args.max_det)
-        # else:
-        #     pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[1]], 0)
-        #     batch_idx, cls, bboxes, confs = output_to_target(preds[1], max_det=self.args.max_det)
+        batch_idx, cls, bboxes, confs = output_to_target(preds[0][0], max_det=self.args.max_det)
+
 
         plot_images(
             batch["img"],
