@@ -72,6 +72,7 @@ from ultralytics.utils.loss import (
     v8ClassificationLoss,
     v8DetectionLoss,
     v8OBBLoss,
+    v8PoseLoss,
     v8PoSegLoss,
     v8SegmentationLoss,
 )
@@ -427,7 +428,7 @@ class PoseModel(DetectionModel):
 
     def init_criterion(self):
         """Initialize the loss criterion for the PoseModel."""
-        return v8PoSegLoss(self)
+        return v8PoseLoss(self)
 
 
 class ClassificationModel(BaseModel):

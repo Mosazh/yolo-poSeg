@@ -114,25 +114,25 @@ class PoSegValidator(DetectionValidator):
         #     nc=self.nc,
         # )
 
-        # p_pose = ops.non_max_suppression(
-        #     preds[0][1] if len(preds[1]) == 4 else preds[1],
-        #     self.args.conf,
-        #     self.args.iou,
-        #     labels=self.lb,
-        #     multi_label=True,
-        #     agnostic=self.args.single_cls or self.args.agnostic_nms,
-        #     max_det=self.args.max_det,
-        #     nc=self.nc,
-        # )
+        p_pose = ops.non_max_suppression(
+            preds[0][1] if len(preds[1]) == 4 else preds[1],
+            self.args.conf,
+            self.args.iou,
+            labels=self.lb,
+            multi_label=True,
+            agnostic=self.args.single_cls or self.args.agnostic_nms,
+            max_det=self.args.max_det,
+            nc=self.nc,
+        )
 
-        p_pose = (preds[0][1], (preds[1][0], preds[1][3])) if len(preds[1]) == 4 else preds[1]
-        p_pose = super().postprocess(p_pose)
+        # p_pose = (preds[0][1], (preds[1][0], preds[1][3])) if len(preds[1]) == 4 else preds[1]
+        # p_pose = super().postprocess(p_pose)
         p_seg = super().postprocess(preds[0][0])
 
         proto = (
             preds[1][-2] if len(preds[1]) == 4 else preds[0][1]
         )  # second output is len 4 if pt, but only 1 if exported
-        
+
         return (p_seg, p_pose), proto
 
     def _prepare_pred(self, pred_seg, pred_kpt, pbatch, proto):
@@ -143,12 +143,25 @@ class PoSegValidator(DetectionValidator):
         predn_seg = super()._prepare_pred(pred_seg, pbatch)
         predn_kpt = super()._prepare_pred(pred_kpt, pbatch)
 
-        pred_masks = self.process(proto, pred_seg[:, 6:], pred_seg[:, :4], shape=pbatch["imgsz"])
+        # pred_masks = self.process(proto, pred_seg[:, 6:], pred_seg[:, :4], shape=pbatch["imgsz"])
 
-        nk = pbatch["kpts"].shape[1]
-        pred_kpts = predn_kpt[:, 6:].view(len(predn_kpt), nk, -1)
-        ops.scale_coords(pbatch["imgsz"], pred_kpts, pbatch["ori_shape"], ratio_pad=pbatch["ratio_pad"])
+        # nk = pbatch["kpts"].shape[1]
+        # pred_kpts = predn_kpt[:, 6:].view(len(predn_kpt), nk, -1)
+        # ops.scale_coords(pbatch["imgsz"], pred_kpts, pbatch["ori_shape"], ratio_pad=pbatch["ratio_pad"])
+        # return predn_seg, pred_masks, predn_kpt, pred_kpts
+
+        # Handle empty keypoint predictions
+        if predn_kpt.numel() == 0:  # 添加空张量保护
+            nk = self.kpt_shape[0] if hasattr(self, 'kpt_shape') else 17
+            pred_kpts = torch.zeros((0, nk, 3), device=predn_kpt.device)  # 创建兼容形状的空张量
+        else:
+            nk = pbatch["kpts"].shape[1]
+            pred_kpts = predn_kpt[:, 6:].view(len(predn_kpt), nk, -1)
+            ops.scale_coords(pbatch["imgsz"], pred_kpts, pbatch["ori_shape"], ratio_pad=pbatch["ratio_pad"])
+
+        pred_masks = self.process(proto, pred_seg[:, 6:], pred_seg[:, :4], shape=pbatch["imgsz"])
         return predn_seg, pred_masks, predn_kpt, pred_kpts
+
     def update_metrics(self, preds, batch):
         """Metrics."""
         for si, (pred_seg, pred_kpt, proto) in enumerate(zip(preds[0][0], preds[0][1], preds[1])):

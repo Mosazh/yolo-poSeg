@@ -17,9 +17,9 @@ test: test/images # test images (relative to 'path') 227 images
 # Classes
 names:
   0: buffalo
-  1: elephant
-  2: rhino
-  3: zebra
+  # 1: elephant
+  # 2: rhino
+  # 3: zebra
 
 # Download script/URL (optional)
 download: https://github.com/ultralytics/assets/releases/download/v0.0.0/african-wildlife.zip

@@ -640,6 +640,21 @@ class PoSeg(Detect):
         self.npr = npr  # number of protos
         self.proto = Proto(ch[0], self.npr, self.nm)  # protos
 
+        c3_kpt = max(ch[0], min(1, 100))  # channels
+
+        self.cv3_kpt = (
+            nn.ModuleList(nn.Sequential(Conv(x, c3_kpt, 3), Conv(c3_kpt, c3_kpt, 3), nn.Conv2d(c3_kpt, self.nc, 1)) for x in ch)
+            if self.legacy
+            else nn.ModuleList(
+                nn.Sequential(
+                    nn.Sequential(DWConv(x, x, 3), Conv(x, c3_kpt, 1)),
+                    nn.Sequential(DWConv(c3_kpt, c3_kpt, 3), Conv(c3_kpt, c3_kpt, 1)),
+                    nn.Conv2d(c3_kpt, self.nc, 1),
+                )
+                for x in ch
+            )
+        )
+
         # segmentation branch
         c4_seg = max(ch[0] // 4, self.nm)
         self.cv4_seg = nn.ModuleList(
@@ -659,6 +674,8 @@ class PoSeg(Detect):
         """
         Returns a tuple of mask and keypoint detections.
         """
+        # x_pose = x
+
         # Process segmentation
         p = self.proto(x[0])  # mask protos
         bs = p.shape[0]  # batch size
@@ -668,6 +685,9 @@ class PoSeg(Detect):
         kpt = torch.cat([self.cv4_pose[i](x[i]).view(bs, self.nk, -1) for i in range(self.nl)], -1)  # (bs, 17*3, h*w)
 
         x = super().forward(x)
+
+        # x_pose = self.forward_kpt(x)
+
         if self.training:
             return x, mc, p, kpt
 
@@ -709,3 +729,52 @@ class PoSeg(Detect):
             y[:, 1::ndim] = (y[:, 1::ndim] * 2.0 + (self.anchors[1] - 0.5)) * self.strides
             return y
 
+'''
+
+    def forward_kpt(self, x):
+        """Concatenates and returns predicted bounding boxes and class probabilities."""
+        if self.end2end:
+            return self.forward_end2end(x)
+
+        for i in range(self.nl):
+            x[i] = torch.cat((self.cv2[i](x[i]), self.cv3_kpt[i](x[i])), 1)
+        if self.training:  # Training path
+            return x
+        y = self._inference_kpt(x)
+        return y if self.export else (y, x)
+
+    def _inference_kpt(self, x, no=65):
+        """Decode predicted bounding boxes and class probabilities based on multiple-level feature maps."""
+        # Inference path
+        shape = x[0].shape  # BCHW
+        x_cat = torch.cat([xi.view(shape[0], no, -1) for xi in x], 2)
+        if self.format != "imx" and (self.dynamic or self.shape != shape):
+            self.anchors, self.strides = (x.transpose(0, 1) for x in make_anchors(x, self.stride, 0.5))
+            self.shape = shape
+
+        if self.export and self.format in {"saved_model", "pb", "tflite", "edgetpu", "tfjs"}:  # avoid TF FlexSplitV ops
+            box = x_cat[:, : self.reg_max * 4]
+            cls = x_cat[:, self.reg_max * 4 :]
+        else:
+            box, cls = x_cat.split((self.reg_max * 4, self.nc), 1)
+
+        if self.export and self.format in {"tflite", "edgetpu"}:
+            # Precompute normalization factor to increase numerical stability
+            # See https://github.com/ultralytics/ultralytics/issues/7371
+            grid_h = shape[2]
+            grid_w = shape[3]
+            grid_size = torch.tensor([grid_w, grid_h, grid_w, grid_h], device=box.device).reshape(1, 4, 1)
+            norm = self.strides / (self.stride[0] * grid_size)
+            dbox = self.decode_bboxes(self.dfl(box) * norm, self.anchors.unsqueeze(0) * norm[:, :2])
+        elif self.export and self.format == "imx":
+            dbox = self.decode_bboxes(
+                self.dfl(box) * self.strides, self.anchors.unsqueeze(0) * self.strides, xywh=False
+            )
+            return dbox.transpose(1, 2), cls.sigmoid().permute(0, 2, 1)
+        else:
+            dbox = self.decode_bboxes(self.dfl(box), self.anchors.unsqueeze(0)) * self.strides
+
+        return torch.cat((dbox, cls.sigmoid()), 1)
+
+
+'''
