@@ -151,9 +151,9 @@ class PoSegValidator(DetectionValidator):
         # return predn_seg, pred_masks, predn_kpt, pred_kpts
 
         # Handle empty keypoint predictions
-        if predn_kpt.numel() == 0:  # 添加空张量保护
+        if predn_kpt.numel() == 0:
             nk = self.kpt_shape[0] if hasattr(self, 'kpt_shape') else 17
-            pred_kpts = torch.zeros((0, nk, 3), device=predn_kpt.device)  # 创建兼容形状的空张量
+            pred_kpts = torch.zeros((0, nk, 3), device=predn_kpt.device)
         else:
             nk = pbatch["kpts"].shape[1]
             pred_kpts = predn_kpt[:, 6:].view(len(predn_kpt), nk, -1)

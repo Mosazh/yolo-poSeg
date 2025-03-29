@@ -7,10 +7,10 @@ model = YOLO("yolov8-poseg.yaml")
 # Train the model
 # results = model.train(data="cocoTest-poseg.yaml", device='cuda', optimizer='Adam', epochs=100, imgsz=640, batch=32)
 results = model.train(
-    data="cocoTest-poseg.yaml",
+    data="fox-poseg-80.yaml",
     epochs=500,
     imgsz=640,
-    batch=32,
+    batch=1,
     # hsv_h=0.0,    # 关闭色调增强
     # hsv_s=0.0,    # 关闭饱和度增强
     # hsv_v=0.0,    # 关闭亮度增强

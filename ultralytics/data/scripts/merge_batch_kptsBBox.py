@@ -125,8 +125,8 @@ def batch_merge_labels(pose_dir, seg_dir, output_dir):
     print(f"\n处理完成！成功处理 {processed} 个文件，失败 {len(error_files)} 个")
 
 if __name__ == '__main__':
-    seg_labels_path = '/home/Mos/OtherDisks/TiPlus7100/Datasets/COCO/coco-seg_labels/labels/val2017'
-    pose_labels_path = '/home/Mos/OtherDisks/TiPlus7100/Datasets/COCO/coco-pose_labels/labels/val2017'
-    output_path= '/home/Mos/OtherDisks/TiPlus7100/Datasets/COCO/coco-poseg_labels(kpts_box)'
+    seg_labels_path = '/home/Mos/OtherDisks/TiPlus7100/Datasets/Animal Image Dataset-Cats, Dogs, and Foxes/fox_seg'
+    pose_labels_path = '/home/Mos/OtherDisks/TiPlus7100/Datasets/Animal Image Dataset-Cats, Dogs, and Foxes/fox_pose_nose'
+    output_path= '/home/Mos/OtherDisks/TiPlus7100/Datasets/Animal Image Dataset-Cats, Dogs, and Foxes/fox_poseg'
 
     batch_merge_labels(pose_labels_path, seg_labels_path, output_path)
