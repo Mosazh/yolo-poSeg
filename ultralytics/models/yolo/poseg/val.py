@@ -274,7 +274,6 @@ class PoSegValidator(DetectionValidator):
         pred_kpts = torch.cat([p[:, 6:].contiguous().view(-1, *self.kpt_shape) for p in preds[0][1]], 0)
         batch_idx, cls, bboxes, confs = output_to_target(preds[0][0], max_det=self.args.max_det)
 
-
         plot_images(
             batch["img"],
             batch_idx,

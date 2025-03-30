@@ -123,6 +123,7 @@ crop_fraction: 1.0 # (float) image crop fraction for classification (0.1-1), 1.0
 
 # Custom config.yaml ---------------------------------------------------------------------------------------------------
 cfg: # (str, optional) for overriding defaults.yaml
+sigma_factor: 10
 
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
