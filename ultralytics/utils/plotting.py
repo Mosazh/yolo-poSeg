@@ -1084,7 +1084,7 @@ def plot_images(
     if isinstance(masks, torch.Tensor):
         masks = masks.cpu().numpy().astype(int)
     elif isinstance(masks, tuple):
-        masks = masks[0]
+        masks = masks[0].cpu().numpy().astype(int)
 
     if isinstance(kpts, torch.Tensor):
         kpts = kpts.cpu().numpy()
