@@ -37,7 +37,7 @@ from .utils import (
     verify_image,
     verify_image_label,
     verify_image_poseg_label,
-    verify_image_multitask_label,
+    verify_image_poseg_label_Insulate,
 )
 
 # Ultralytics dataset *.cache version, >= 1.0.0 for YOLOv8
@@ -89,7 +89,7 @@ class YOLODataset(BaseDataset):
             )
         if self.task == "poseg":
             kpt_names = self.data.get("kpt_names", {})
-            self.vil = verify_image_poseg_label
+            self.vil = verify_image_poseg_label_Insulate if ('insulate' in self.data and self.data['insulate']) else verify_image_poseg_label
             iterable_zip = zip(
                 self.im_files,
                 self.label_files,

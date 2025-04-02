@@ -7,7 +7,7 @@ def main():
     # Train the model
     # results = model.train(data="cocoTest-poseg.yaml", device='cuda', optimizer='Adam', epochs=100, imgsz=640, batch=32)
     results = model.train(
-        data="fox-poseg-80.yaml",
+        data="MKSD.yaml",
         epochs=2,
         imgsz=640,
         batch=1,

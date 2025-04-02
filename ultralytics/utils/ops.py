@@ -615,6 +615,18 @@ def ltwh2xyxy(x):
     y[..., 3] = x[..., 3] + x[..., 1]  # height
     return y
 
+# custom segpoint2xywh
+def seg2xywh(segments):
+    x_max = np.max(segments[:, 0])
+    x_min = np.min(segments[:, 0])
+    y_max = np.max(segments[:, 1])
+    y_min = np.min(segments[:, 1])
+    x = (x_max + x_min) / 2
+    y = (y_max + y_min) / 2
+    w = x_max - x_min
+    h = y_max - y_min
+    return np.array([x, y, w, h], dtype=np.float32)
+
 
 def segments2boxes(segments):
     """
