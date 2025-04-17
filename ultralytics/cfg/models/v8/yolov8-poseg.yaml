@@ -7,8 +7,6 @@
 # # Thank https://github.com/ultralytics/ultralytics/issues/6949
 
 # Parameters
-# nc_pose: 1 # number of pose classes
-# nc_seg: 80 # number of seg classes
 nc: 80
 kpt_shape: [17, 3] # number of keypoints, number of dims (2 for x,y or 3 for x,y,visible)
 scales: # model compound scaling constants, i.e. 'model=yolov8n-pose.yaml' will call yolov8-pose.yaml with scale 'n'
@@ -18,13 +16,6 @@ scales: # model compound scaling constants, i.e. 'model=yolov8n-pose.yaml' will 
   m: [0.67, 0.75, 768]
   l: [1.00, 1.00, 512]
   x: [1.00, 1.25, 512]
-
-# loss_weights:
-#   box: 0.05
-#   obj: 0.4
-#   cls: 0.5
-#   kpt: 1.0
-#   seg: 0.8
 
 # YOLOv8.0n backbone
 backbone:

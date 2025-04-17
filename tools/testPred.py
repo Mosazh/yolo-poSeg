@@ -6,10 +6,10 @@ import cv2
 os.environ['QT_QPA_PLATFORM'] = 'xcb'
 os.chdir(os.path.dirname(__file__))
 
-model = YOLO("/home/Mos/Documents/Complex/MyStudy/new_yolo/yolo-poSeg/runs/train/weights/best.pt")
+model = YOLO("/home/Mos/Documents/Complex/MyStudy/new_yolo/yolo-poSeg/runs/train3/weights/best.pt")
 
 results = model.predict(
-    source="testPred_img.jpg",  # 输入图像路径
+    source="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01-03.png",  # 输入图像路径
     conf=0.25,         # 置信度阈值（过滤低置信度检测）
     iou=0.7,           # IoU 阈值（用于NMS）
     imgsz=640,         # 输入图像尺寸（自动缩放）

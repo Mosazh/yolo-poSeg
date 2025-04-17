@@ -1238,8 +1238,8 @@ def plot_results(file="path/to/results.csv", dir="", segment=False, pose=False, 
         fig, ax = plt.subplots(2, 9, figsize=(21, 6), tight_layout=True)
         index = [2, 3, 4, 5, 6, 7, 8, 11, 12, 15, 16, 17, 18, 19, 9, 10, 13, 14]
     elif poseg:
-        fig, ax = plt.subplots(2, 10, figsize=(24, 6), tight_layout=True)
-        index = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+        fig, ax = plt.subplots(2, 12, figsize=(26, 6), tight_layout=True)
+        index = [2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 20, 21, 22, 23, 24, 25, 10, 11, 14, 15, 18, 19]
     else:
         fig, ax = plt.subplots(2, 5, figsize=(12, 6), tight_layout=True)
         index = [2, 3, 4, 5, 6, 9, 10, 11, 7, 8]

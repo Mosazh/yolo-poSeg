@@ -10,16 +10,16 @@ from ultralytics import YOLO
 import csv
 
 # ========== 配置部分 ==========
-MODEL_PATH = '/home/Mos/Downloads/train&val/20250111-20250112/train4/weights/best.pt'
+MODEL_PATH = '/home/Mos/Documents/Complex/MyStudy/new_yolo/yolo-poSeg/runs/train2/weights/best.pt'
 # MODEL_PATH = '/home/Mos/Downloads/train&val/20250220-x/train1/weights/best.pt'
 
-IMG_PATH = '/home/Mos/OtherDisks/TiPlus7100/jyx/jyx_mb_rgb.png'
+IMG_PATH = '/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01.png'
 
 # 切换到脚本所在目录
 os.chdir(os.path.dirname(__file__))
 
 # 输出结果目录
-OUTPUT_DIR = '../output_pose/test7'
+OUTPUT_DIR = '/home/Mos/Desktop/mtemp/complete_test/pred2'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # 滑动裁剪参数

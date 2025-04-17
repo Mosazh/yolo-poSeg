@@ -77,4 +77,4 @@ class PoSegTrainer(DetectionTrainer):
         )
     def plot_metrics(self):
         """Plots training/val metrics."""
-        plot_results(file=self.csv, pose=True, segment=True, on_plot=self.on_plot)  # save results.png
+        plot_results(file=self.csv, poseg=True, on_plot=self.on_plot)  # save results.png
