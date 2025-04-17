@@ -19,15 +19,6 @@ results = model.predict(
     device="cpu"    # 使用GPU（可选：'cpu' 或 'cuda:0'）
 )
 
-# # 手动访问可视化结果
-# result = results[0]
-# visualized_img = result.plot()  # 返回带标注的BGR格式numpy数组
-
-# # 使用OpenCV显示
-# cv2.imshow("YOLOv8 Detection", visualized_img)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
-
 # 遍历每一帧的检测结果
 for result in results:
     # 获取检测框信息

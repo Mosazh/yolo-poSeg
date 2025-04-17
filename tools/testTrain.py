@@ -2,15 +2,15 @@ from ultralytics import YOLO
 
 def main():
     # Load a model
-    model = YOLO("yolo12-poseg.yaml")
+    model = YOLO("yolov8-poseg_acmix.yaml")
 
     # Train the model
     # results = model.train(data="cocoTest-poseg.yaml", device='cuda', optimizer='Adam', epochs=100, imgsz=640, batch=32)
     results = model.train(
         data="MKSD.yaml",
-        epochs=200,
+        epochs=2,
         imgsz=640,
-        batch=16,
+        batch=2,
         degrees=180,
         # hsv_h=0.0,    # 关闭色调增强
         # hsv_s=0.0,    # 关闭饱和度增强

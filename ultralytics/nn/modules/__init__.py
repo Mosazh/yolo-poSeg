@@ -74,6 +74,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    ACmix,
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -163,4 +164,5 @@ __all__ = (
     "Index",
     "A2C2f",
     "PoSeg",
+    "ACmix",
 )

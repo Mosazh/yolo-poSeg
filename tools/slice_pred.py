@@ -1,140 +1,98 @@
-import os
+from ultralytics import YOLO
 import cv2
 import numpy as np
-from ultralytics import YOLO
-import csv
+import pandas as pd
+import os
 from tqdm import tqdm
 
-# ========== 配置部分 ==========
-# 切换到脚本所在目录
-os.chdir(os.path.dirname(__file__))
+class SlidingWindowPredictor:
+    def __init__(self, model_path, window_size=640, overlap=0.2):
+        self.model = YOLO(model_path)
+        self.window_size = window_size
+        self.stride = int(window_size * (1 - overlap))  # 滑动步长
+        self.results_df = pd.DataFrame(columns=["x1", "y1", "x2", "y2", "conf", "cls", "window_pos"])
 
-MODEL_PATH = '/home/Mos/Documents/Complex/MyStudy/new_yolo/yolo-poSeg/runs/train3/weights/best.pt'
-IMG_PATH = '/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01.png'
-OUTPUT_DIR = '/home/Mos/Desktop/mtemp/complete_test/pred3'
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+    def _sliding_windows(self, img):
+        """生成滑动窗口坐标"""
+        h, w = img.shape[:2]
+        windows = []
+        for y in range(0, h, self.stride):
+            for x in range(0, w, self.stride):
+                x_end = min(x + self.window_size, w)
+                y_end = min(y + self.window_size, h)
+                windows.append((x, y, x_end, y_end))
+        return windows
 
-# 滑动窗口参数
-SLICE_SIZE = 1200
-OVERLAP = 0.2
-STEP = int(SLICE_SIZE * (1 - OVERLAP))
+    def predict_and_save(self, image_path, output_dir):
+        # 创建输出目录
+        os.makedirs(output_dir, exist_ok=True)
+        base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-# Mask参数
-MASK_THRESHOLD = 0.5  # 二值化阈值[8](@ref)
-MASK_ALPHA = 0.3      # 可视化透明度
+        # 读取原始图像
+        img = cv2.imread(image_path)
+        full_h, full_w = img.shape[:2]
+        merged_img = np.zeros_like(img)  # 用于拼接预测结果
+        mask = np.zeros((full_h, full_w), dtype=np.uint8)  # 记录覆盖区域
 
-# ========== 初始化模型 ==========
-model = YOLO(MODEL_PATH)
+        # 滑动窗口预测
+        windows = self._sliding_windows(img)
+        for idx, (x1, y1, x2, y2) in enumerate(tqdm(windows)):
+            # 裁剪窗口区域
+            crop = img[y1:y2, x1:x2]
 
-# ========== 图像处理 ==========
-image = cv2.imread(IMG_PATH)
-h, w = image.shape[:2]
-result_image = image.copy()
+            # YOLOv8预测（调整尺寸至模型输入）
+            results = self.model.predict(
+                source=crop,
+                imgsz=self.window_size,
+                conf=0.34,
+                device="cpu",
+                verbose=False
+            )
 
-# 初始化全局mask画布[7](@ref)
-global_mask = np.zeros((h, w), dtype=np.float32)
+            # 保存窗口预测结果
+            window_pred_path = os.path.join(output_dir, f"{base_name}_window{idx}.jpg")
+            cv2.imwrite(window_pred_path, results[0].plot())
 
-# 存储检测结果
-all_detections = []
-
-# ========== 滑动窗口处理 ==========
-for y in tqdm(range(0, h, STEP), desc="Processing slices"):
-    for x in range(0, w, STEP):
-        # 计算当前切片坐标
-        y1, y2 = y, min(y+SLICE_SIZE, h)
-        x1, x2 = x, min(x+SLICE_SIZE, w)
-        slice_img = image[y1:y2, x1:x2]
-
-        # 填充不足尺寸的切片
-        pad_h = SLICE_SIZE - (y2-y1)
-        pad_w = SLICE_SIZE - (x2-x1)
-        if pad_h > 0 or pad_w > 0:
-            slice_img = cv2.copyMakeBorder(slice_img, 0, pad_h, 0, pad_w,
-                                         cv2.BORDER_REPLICATE)
-
-        # 模型推理[6](@ref)
-        results = model(slice_img)
-
-        # 处理每个检测结果
-        for i, box in enumerate(results[0].boxes):
-            # 解析边界框
-            xyxy = box.xyxy[0].cpu().numpy()
-            conf = box.conf[0].item()
-            cls_id = int(box.cls[0].item())
-
-            # 转换到全局坐标
-            x_min = xyxy[0] + x
-            y_min = xyxy[1] + y
-            x_max = xyxy[2] + x
-            y_max = xyxy[3] + y
-
-            # 处理mask数据[8](@ref)
-            if results[0].masks is not None:
-                mask = results[0].masks[i].data[0].cpu().numpy()
-
-                # 创建局部mask画布
-                local_mask = np.zeros((SLICE_SIZE, SLICE_SIZE), dtype=np.float32)
-                local_mask[:mask.shape[0], :mask.shape[1]] = mask
-
-                # 映射到全局坐标系[7](@ref)
-                global_y1 = y
-                global_y2 = min(y+SLICE_SIZE, h)
-                global_x1 = x
-                global_x2 = min(x+SLICE_SIZE, w)
-
-                # 更新全局mask
-                global_mask[global_y1:global_y2, global_x1:global_x2] = np.maximum(
-                    global_mask[global_y1:global_y2, global_x1:global_x2],
-                    local_mask[:global_y2-global_y1, :global_x2-global_x1]
+            # 记录检测数据（坐标转换为全局）
+            for box in results[0].boxes:
+                x1_box, y1_box, x2_box, y2_box = box.xyxy[0].tolist()
+                global_coords = (
+                    x1 + x1_box, y1 + y1_box,
+                    x1 + x2_box, y1 + y2_box
                 )
+                self.results_df = pd.concat([self.results_df, pd.DataFrame([{
+                    "x1": global_coords[0],
+                    "y1": global_coords[1],
+                    "x2": global_coords[2],
+                    "y2": global_coords[3],
+                    "conf": box.conf.item(),
+                    "cls": self.model.names[int(box.cls)],
+                    "window_pos": f"({x1},{y1})-({x2},{y2})"
+                }])], ignore_index=True)
 
-            # 存储检测结果
-            all_detections.append([
-                x, y, x_min, y_min, x_max, y_max, conf, cls_id
-            ])
+            # 拼接预测结果到全图
+            pred_plot = results[0].plot()
+            merged_img[y1:y2, x1:x2] = cv2.addWeighted(
+                merged_img[y1:y2, x1:x2], 0.3,
+                pred_plot, 0.7, 0
+            )
+            mask[y1:y2, x1:x2] = 1
 
-# ========== Mask后处理 ==========
-# 二值化处理[1](@ref)
-binary_mask = (global_mask > MASK_THRESHOLD).astype(np.uint8) * 255
+        # 保存最终结果
+        cv2.imwrite(os.path.join(output_dir, f"{base_name}_merged.jpg"), merged_img)
+        self.results_df.to_csv(os.path.join(output_dir, f"{base_name}_predictions.csv"), index=False)
 
-# 查找轮廓[1,8](@ref)
-contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # 返回原始图像与预测叠加图
+        return merged_img
 
-# 过滤小面积区域
-min_area = 100
-filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area]
-
-# ========== 结果保存 ==========
-with open(os.path.join(OUTPUT_DIR, 'results.csv'), 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(["x_min", "y_min", "x_max", "y_max", "confidence", "class_id", "contour_points"])
-
-    for det in all_detections:
-        # 关联最近的轮廓
-        x_center = (det[2] + det[4]) / 2
-        y_center = (det[3] + det[5]) / 2
-        nearest_contour = min(filtered_contours,
-                            key=lambda c: cv2.pointPolygonTest(c, (x_center, y_center), True))
-
-        # 转换轮廓点格式
-        points = [[int(pt[0][0]), int(pt[0][1])] for pt in nearest_contour]
-
-        writer.writerow([
-            det[2], det[3], det[4], det[5], det[6], det[7],
-            ';'.join(f"{x},{y}" for x,y in points)
-        ])
-
-# ========== 可视化 ==========
-# 绘制mask叠加层[6](@ref)
-mask_layer = np.zeros_like(image)
-mask_layer[..., 1] = binary_mask  # 绿色通道
-mask_layer = cv2.addWeighted(image, 1, mask_layer, MASK_ALPHA, 0)
-
-# 绘制边界框
-for det in all_detections:
-    x_min, y_min, x_max, y_max = map(int, det[2:6])
-    cv2.rectangle(mask_layer, (x_min, y_min), (x_max, y_max), (0,255,0), 2)
-
-# 保存结果
-cv2.imwrite(os.path.join(OUTPUT_DIR, 'result.jpg'), mask_layer)
-print(f"Results saved to {OUTPUT_DIR}")
+# 使用示例
+if __name__ == "__main__":
+    predictor = SlidingWindowPredictor(
+        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/yolo-poSeg/runs/train3/weights/best.pt",
+        window_size=1280,
+        overlap=0.2
+    )
+    predictor.predict_and_save(
+        image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01r.png",
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred5"
+    )
