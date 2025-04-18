@@ -75,6 +75,9 @@ from .conv import (
     RepConv,
     SpatialAttention,
     ACmix,
+    CBAM,
+    ECA,
+    ShuffleAttention,
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -89,6 +92,9 @@ from .transformer import (
     TransformerEncoderLayer,
     TransformerLayer,
 )
+
+from .coordatt import CoordAtt
+from .mlla import MLLAttention
 
 __all__ = (
     "Conv",
@@ -165,4 +171,9 @@ __all__ = (
     "A2C2f",
     "PoSeg",
     "ACmix",
+    "CoordAtt",
+    "CBAM",
+    "ECA",
+    "MLLAttention",
+    "ShuffleAttention",
 )
