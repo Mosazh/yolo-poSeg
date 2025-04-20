@@ -2,7 +2,7 @@ from ultralytics import YOLO
 
 def main():
     # Load a model
-    model = YOLO("yolov8-poseg_acmix.yaml")
+    model = YOLO("yolov8-poseg_ShuffleAttention.yaml")
 
     # Train the model
     # results = model.train(data="cocoTest-poseg.yaml", device='cuda', optimizer='Adam', epochs=100, imgsz=640, batch=32)
@@ -12,6 +12,8 @@ def main():
         imgsz=640,
         batch=2,
         degrees=180,
+        # half=False,   # ACmix
+        # amp=False,    # ACmix
         # hsv_h=0.0,    # 关闭色调增强
         # hsv_s=0.0,    # 关闭饱和度增强
         # hsv_v=0.0,    # 关闭亮度增强

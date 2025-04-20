@@ -570,9 +570,14 @@ def ap_per_class(
     i = np.argsort(-conf)
     tp, conf, pred_cls = tp[i], conf[i], pred_cls[i]
 
-    # Find unique classes
-    unique_classes, nt = np.unique(target_cls, return_counts=True)
-    nc = unique_classes.shape[0]  # number of classes, number of detections
+    if prefix=='Pose':
+        nc = len(names)
+        filtered_cls = target_cls[target_cls == 0]
+        unique_classes, nt = np.unique(filtered_cls, return_counts=True)
+    else:
+        # Find unique classes
+        unique_classes, nt = np.unique(target_cls, return_counts=True)
+        nc = unique_classes.shape[0]  # number of classes, number of detections
 
     # Create Precision-Recall curve and compute AP for each class
     x, prec_values = np.linspace(0, 1, 1000), []
@@ -1221,6 +1226,7 @@ class PoSegMetrics(SimpleClass):
             pred_cls (list): List of predicted classes.
             target_cls (list): List of target classes.
         """
+        names = {k: v for k, v in self.names.items() if k == 0}
         results_pose = ap_per_class(
             tp_p,
             conf,
@@ -1229,10 +1235,11 @@ class PoSegMetrics(SimpleClass):
             plot=self.plot,
             on_plot=self.on_plot,
             save_dir=self.save_dir,
-            names=self.names,
+            names=names,
             prefix="Pose",
         )[2:]
-        self.pose.nc = len(self.names)
+        # self.pose.nc = len(self.names)
+        self.pose.nc = len(names)
         self.pose.update(results_pose)
 
         results_mask = ap_per_class(
@@ -1288,7 +1295,10 @@ class PoSegMetrics(SimpleClass):
 
     def class_result(self, i):
         """Return the class-wise detection results for a specific class i."""
-        return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(i)
+        if i == 0:
+            return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(i)
+        else:
+            return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(0)
 
     @property
     def maps(self):
