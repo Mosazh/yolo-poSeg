@@ -246,7 +246,7 @@ class PoSegValidator(DetectionValidator):
         if pred_kpts is not None and gt_kpts is not None:
             # `0.53` is from https://github.com/jin-s13/xtcocoapi/blob/master/xtcocotools/cocoeval.py#L384
             area = ops.xyxy2xywh(gt_bboxes)[:, 2:].prod(1) * 0.53
-            iou = kpt_iou(gt_kpts, pred_kpts, sigma=self.sigma, area=area)
+            iou = kpt_iou(gt_kpts, pred_kpts, sigma=self.sigma*0.05, area=area)
         else:  # boxes
             iou = box_iou(gt_bboxes, detections[:, :4])
 
