@@ -70,6 +70,7 @@ from ultralytics.nn.modules import (
     ECA,
     MLLAttention,
     ShuffleAttention,
+    MHSA,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1149,14 +1150,21 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m is ACmix:
             c1, c2 = ch[f], args[0]
             args = [c1, c2, 7, 4, *args[1:]]
-        elif m in {CBAM, ECA, ShuffleAttention, CoordAtt}:
+        elif m in {CBAM, ECA, ShuffleAttention}:
             c1, c2 = ch[f], args[0]
             if c2 != nc:
                 c2 = make_divisible(min(c2, max_channels) * width, 8)
             args = [c1, *args[1:]]
+        elif m is CoordAtt:
+            c1 = ch[f]  # 输入通道数
+            oup = args[0]
+            reduction = args[1] if len(args) > 1 else 32  # default reduction=32
+            args = [c1, oup, reduction]  #inp, oup, reduction
         elif m is MLLAttention:
             c2 = ch[f]
             args = [c2, *args]
+        elif m is MHSA:
+            args = [ch[f], *args[0:]]
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]

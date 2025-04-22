@@ -572,7 +572,7 @@ def ap_per_class(
 
     if prefix=='Pose':
         nc = len(names)
-        filtered_cls = target_cls[target_cls == 0]
+        filtered_cls = target_cls[target_cls == 0] # if task is pose, only 1 class has kpt data
         unique_classes, nt = np.unique(filtered_cls, return_counts=True)
     else:
         # Find unique classes

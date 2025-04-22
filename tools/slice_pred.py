@@ -90,7 +90,7 @@ if __name__ == "__main__":
     predictor = SlidingWindowPredictor(
         model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original_box_30/weights/best.pt",
         window_size=2560,
-        overlap=0.2
+        overlap=0
     )
     predictor.predict_and_save(
         image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01r.png",

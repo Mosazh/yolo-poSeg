@@ -78,6 +78,7 @@ from .conv import (
     CBAM,
     ECA,
     ShuffleAttention,
+    MHSA,
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -176,4 +177,5 @@ __all__ = (
     "ECA",
     "MLLAttention",
     "ShuffleAttention",
+    "MHSA",
 )
