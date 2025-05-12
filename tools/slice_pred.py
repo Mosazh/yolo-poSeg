@@ -1,20 +1,33 @@
+import os
+import json
+import gc
 from ultralytics import YOLO
 import cv2
 import numpy as np
 import pandas as pd
-import os
 from tqdm import tqdm
 
 class SlidingWindowPredictor:
-    def __init__(self, model_path, window_size=640, overlap=0.2):
+    def __init__(self, model_path, window_size=1280, overlap=0.2, device='cpu', save_window_vis=False, scale_factor=1.0):
+        """
+        Args:
+            model_path (str): Path to the YOLO model .pt file.
+            window_size (int): Size of each sliding window (square).
+            overlap (float): Fractional overlap between windows (0 to <1).
+            device (str): 'cpu' or 'cuda:0' for inference device.
+            save_window_vis (bool): Whether to save each window's visualization.
+            scale_factor (float): Scale factor for input image (e.g., 0.5 to halve size).
+        """
         self.model = YOLO(model_path)
         self.window_size = window_size
-        self.stride = int(window_size * (1 - overlap))  # 滑动步长
-        self.results_df = pd.DataFrame(columns=["x1", "y1", "x2", "y2", "conf", "cls", "window_pos"])
+        self.stride = int(window_size * (1 - overlap))
+        self.device = device
+        self.save_window_vis = save_window_vis
+        self.scale_factor = scale_factor
 
-    def _sliding_windows(self, img):
-        """生成滑动窗口坐标"""
-        h, w = img.shape[:2]
+    def _sliding_windows(self, img_shape):
+        """Generate (x1, y1, x2, y2) for each window over the image."""
+        h, w = img_shape[:2]
         windows = []
         for y in range(0, h, self.stride):
             for x in range(0, w, self.stride):
@@ -24,75 +37,155 @@ class SlidingWindowPredictor:
         return windows
 
     def predict_and_save(self, image_path, output_dir):
-        # 创建输出目录
+        """
+        Run sliding-window inference and save separate outputs:
+        - class 0 detections to CSV with slice, bbox, confidence, class_id, keypoints
+        - class 1 masks as convex hulls in JSON
+        Returns:
+            merged_img (np.ndarray): Final blended image array.
+        """
         os.makedirs(output_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(image_path))[0]
 
-        # 读取原始图像
+        # Records for class 0 and class 1
+        class0_records = []
+        class1_records = []
+
+        # Read and scale image
         img = cv2.imread(image_path)
+        if img is None:
+            raise ValueError(f"Failed to load image: {image_path}")
+        orig_h, orig_w = img.shape[:2]
+        if self.scale_factor != 1.0:
+            new_h, new_w = int(orig_h * self.scale_factor), int(orig_w * self.scale_factor)
+            img = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
         full_h, full_w = img.shape[:2]
-        merged_img = np.zeros_like(img)  # 用于拼接预测结果
-        mask = np.zeros((full_h, full_w), dtype=np.uint8)  # 记录覆盖区域
 
-        # 滑动窗口预测
-        windows = self._sliding_windows(img)
-        for idx, (x1, y1, x2, y2) in enumerate(tqdm(windows)):
-            # 裁剪窗口区域
+        # Prepare blending buffers
+        merged_sum = np.zeros((full_h, full_w, 3), dtype=np.float32)
+        weight_sum = np.zeros((full_h, full_w), dtype=np.float32)
+
+        windows = self._sliding_windows(img.shape)
+        for idx, (x1, y1, x2, y2) in enumerate(tqdm(windows, desc="Sliding Windows")):
             crop = img[y1:y2, x1:x2]
+            results = self.model.predict(crop, imgsz=self.window_size, show_labels=False, conf=0.5, device=self.device)
+            res = results[0]
 
-            # YOLOv8预测（调整尺寸至模型输入）
-            results = self.model.predict(
-                source=crop,
-                imgsz=self.window_size,
-                conf=0.34,
-                device="cpu",
-                verbose=False
-            )
+            # Extract masks if available
+            masks = None
+            if hasattr(res, 'masks') and res.masks is not None:
+                masks = res.masks.data.cpu().numpy().astype(np.uint8)
 
-            # 保存窗口预测结果
-            window_pred_path = os.path.join(output_dir, f"{base_name}_window{idx}.jpg")
-            cv2.imwrite(window_pred_path, results[0].plot())
+            # Extract keypoints if available
+            keypoints = None
+            if hasattr(res, 'keypoints') and res.keypoints is not None:
+                keypoints = res.keypoints.data.cpu().numpy()  # shape: (n, K, 3)
 
-            # 记录检测数据（坐标转换为全局）
-            for box in results[0].boxes:
-                x1_box, y1_box, x2_box, y2_box = box.xyxy[0].tolist()
-                global_coords = (
-                    x1 + x1_box, y1 + y1_box,
-                    x1 + x2_box, y1 + y2_box
-                )
-                self.results_df = pd.concat([self.results_df, pd.DataFrame([{
-                    "x1": global_coords[0],
-                    "y1": global_coords[1],
-                    "x2": global_coords[2],
-                    "y2": global_coords[3],
-                    "conf": box.conf.item(),
-                    "cls": self.model.names[int(box.cls)],
-                    "window_pos": f"({x1},{y1})-({x2},{y2})"
-                }])], ignore_index=True)
+            # Process detections
+            for i, box in enumerate(res.boxes):
+                cls_idx = int(box.cls.item())
+                x1b, y1b, x2b, y2b = box.xyxy[0].tolist()
+                conf = float(box.conf.item())
 
-            # 拼接预测结果到全图
-            pred_plot = results[0].plot()
-            merged_img[y1:y2, x1:x2] = cv2.addWeighted(
-                merged_img[y1:y2, x1:x2], 0.3,
-                pred_plot, 0.7, 0
-            )
-            mask[y1:y2, x1:x2] = 1
+                # Adjust coordinates for scaling
+                scale = 1.0 / self.scale_factor
+                x1b, y1b, x2b, y2b = [v * scale for v in [x1b, y1b, x2b, y2b]]
 
-        # 保存最终结果
-        cv2.imwrite(os.path.join(output_dir, f"{base_name}_merged.jpg"), merged_img)
-        self.results_df.to_csv(os.path.join(output_dir, f"{base_name}_predictions.csv"), index=False)
+                if cls_idx == 0:
+                    # Gather keypoints for this instance
+                    kpts_str = ''
+                    if keypoints is not None and i < keypoints.shape[0]:
+                        pts = []
+                        for kp in keypoints[i]:
+                            pts.append((float(kp[0] * scale), float(kp[1] * scale)))
+                        # kpts_str = ';'.join([f"{x:.1f}:{y:.1f}" for x, y in pts])
+                        kpts_str = ';'.join([f"({x:.1f},{y:.1f})" for x, y in pts])
+                    class0_records.append({
+                        'slice_x': x1 * scale,
+                        'slice_y': y1 * scale,
+                        'x_min': float(x1b),
+                        'y_min': float(y1b),
+                        'x_max': float(x2b),
+                        'y_max': float(y2b),
+                        'confidence': conf,
+                        'class_id': cls_idx,
+                        'keypoints': kpts_str
+                    })
 
-        # 返回原始图像与预测叠加图
+                elif cls_idx == 1 and masks is not None:
+                    mask_i = masks[i]
+                    # Resize mask to reduce memory usage
+                    mask_i = cv2.resize(mask_i, (int(mask_i.shape[1] * scale), int(mask_i.shape[0] * scale)), interpolation=cv2.INTER_NEAREST)
+                    # Find contours to get points for convex hull
+                    contours, _ = cv2.findContours(mask_i, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                    if contours:
+                        # Compute convex hull for the largest contour
+                        contour = max(contours, key=cv2.contourArea)
+                        hull = cv2.convexHull(contour)
+                        # Convert hull points to list and adjust to global coordinates
+                        hull_points = [[int(pt[0][0] + x1 * scale), int(pt[0][1] + y1 * scale)] for pt in hull]
+                        class1_records.append({
+                            'slice_x': x1 * scale,
+                            'slice_y': y1 * scale,
+                            'convex_hull': hull_points
+                        })
+
+            # Optional: save window visualization
+            if self.save_window_vis:
+                vis = res.plot(labels=False,)
+                vis_path = os.path.join(output_dir, f"{base_name}_win{idx}.jpg")
+                cv2.imwrite(vis_path, vis)
+                del vis  # Release visualization memory
+
+            # Blend visualization
+            vis_float = res.plot(labels=False,).astype(np.float32)
+            merged_sum[y1:y2, x1:x2] += vis_float * 0.7
+            weight_sum[y1:y2, x1:x2] += 0.7
+
+            # Clean up
+            del crop, results, res, masks, keypoints, vis_float
+            gc.collect()
+
+        # Final blended image
+        weight_exp = np.expand_dims(weight_sum, axis=2)
+        blended = np.divide(merged_sum, weight_exp, out=np.zeros_like(merged_sum), where=weight_exp > 0)
+        merged_img = blended.astype(np.uint8)
+        # Resize back to original size if scaled
+        if self.scale_factor != 1.0:
+            merged_img = cv2.resize(merged_img, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+        merged_path = os.path.join(output_dir, f"{base_name}_merged.jpg")
+        cv2.imwrite(merged_path, merged_img)
+
+        # Save class 0 CSV
+        df0 = pd.DataFrame(class0_records)
+        csv0_path = os.path.join(output_dir, f"{base_name}_class0.csv")
+        df0.to_csv(csv0_path, index=False)
+
+        # Save class 1 convex hulls to JSON
+        json1_path = os.path.join(output_dir, f"{base_name}_class1.json")
+        with open(json1_path, 'w') as jf:
+            json.dump(class1_records, jf, indent=2)
+
+        print(f"Saved merged image: {merged_path}")
+        print(f"Saved class0 CSV: {csv0_path} (rows: {len(df0)})")
+        print(f"Saved class1 JSON: {json1_path} (objects: {len(class1_records)})")
+
+        # Clean up
+        del img, merged_sum, weight_sum, blended
+        gc.collect()
+
         return merged_img
 
-# 使用示例
 if __name__ == "__main__":
     predictor = SlidingWindowPredictor(
-        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original_box_30/weights/best.pt",
-        window_size=2560,
-        overlap=0
+        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original_iouSigma_0.05_box_30/weights/best.pt",
+        window_size=2560,  # Reduced from 2560
+        overlap=0,  # Increased overlap to maintain coverage
+        device='cpu',
+        save_window_vis=False,  # Disabled to save memory
+        scale_factor=0.5  # Scale image to 50% size
     )
     predictor.predict_and_save(
-        image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01r.png",
-        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred4"
+        image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01.png",
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred5"
     )
