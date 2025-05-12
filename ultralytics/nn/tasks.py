@@ -71,6 +71,7 @@ from ultralytics.nn.modules import (
     MLLAttention,
     ShuffleAttention,
     MHSA,
+    SwinV2_CSPB,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1065,6 +1066,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SCDown,
             C2fCIB,
             A2C2f,
+            SwinV2_CSPB,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
