@@ -97,6 +97,7 @@ from .transformer import (
 from .coordatt import CoordAtt
 from .mlla import MLLAttention
 from .SwinTransformer import SwinV2_CSPB
+from .MobileNetV4 import mobilenetv4_conv_large
 
 __all__ = (
     "Conv",
@@ -180,4 +181,5 @@ __all__ = (
     "ShuffleAttention",
     "MHSA",
     "SwinV2_CSPB",
+    "mobilenetv4_conv_large",
 )

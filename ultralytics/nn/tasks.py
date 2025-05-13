@@ -72,6 +72,7 @@ from ultralytics.nn.modules import (
     ShuffleAttention,
     MHSA,
     SwinV2_CSPB,
+    mobilenetv4_conv_large,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -96,6 +97,8 @@ from ultralytics.utils.torch_utils import (
     scale_img,
     time_sync,
 )
+
+from .modules.MobileNetV4 import MobileNetV4
 
 try:
     import thop
@@ -142,6 +145,35 @@ class BaseModel(torch.nn.Module):
             return self._predict_augment(x)
         return self._predict_once(x, profile, visualize, embed)
 
+    # def _predict_once(self, x, profile=False, visualize=False, embed=None):
+    #     """
+    #     Perform a forward pass through the network.
+
+    #     Args:
+    #         x (torch.Tensor): The input tensor to the model.
+    #         profile (bool):  Print the computation time of each layer if True, defaults to False.
+    #         visualize (bool): Save the feature maps of the model if True, defaults to False.
+    #         embed (list, optional): A list of feature vectors/embeddings to return.
+
+    #     Returns:
+    #         (torch.Tensor): The last output of the model.
+    #     """
+    #     y, dt, embeddings = [], [], []  # outputs
+    #     for m in self.model:
+    #         if m.f != -1:  # if not from previous layer
+    #             x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+    #         if profile:
+    #             self._profile_one_layer(m, x, dt)
+    #         x = m(x)  # run
+    #         y.append(x if m.i in self.save else None)  # save output
+    #         if visualize:
+    #             feature_visualization(x, m.type, m.i, save_dir=visualize)
+    #         if embed and m.i in embed:
+    #             embeddings.append(torch.nn.functional.adaptive_avg_pool2d(x, (1, 1)).squeeze(-1).squeeze(-1))  # flatten
+    #             if m.i == max(embed):
+    #                 return torch.unbind(torch.cat(embeddings, 1), dim=0)
+    #     return x
+
     def _predict_once(self, x, profile=False, visualize=False, embed=None):
         """
         Perform a forward pass through the network.
@@ -161,8 +193,19 @@ class BaseModel(torch.nn.Module):
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
             if profile:
                 self._profile_one_layer(m, x, dt)
-            x = m(x)  # run
-            y.append(x if m.i in self.save else None)  # save output
+            if hasattr(m, 'backbone'):
+                x = m(x)
+                for _ in range(5 - len(x)):
+                    x.insert(0, None)
+                for i_idx, i in enumerate(x):
+                    if i_idx in self.save:
+                        y.append(i)
+                    else:
+                        y.append(None)
+                x = x[-1]
+            else:
+                x = m(x)  # run
+                y.append(x if m.i in self.save else None)  # save output
             if visualize:
                 feature_visualization(x, m.type, m.i, save_dir=visualize)
             if embed and m.i in embed:
@@ -1029,6 +1072,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
     if verbose:
         LOGGER.info(f"\n{'':>3}{'from':>20}{'n':>3}{'params':>10}  {'module':<45}{'arguments':<30}")
     ch = [ch]
+    is_backbone = False
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     base_modules = frozenset(
         {
@@ -1167,6 +1211,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c2, *args]
         elif m is MHSA:
             args = [ch[f], *args[0:]]
+        elif m in (mobilenetv4_conv_large,):
+            m = m(*args)
+            c2 = m.channels
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]
@@ -1174,18 +1221,39 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [*args[1:]]
         else:
             c2 = ch[f]
-
-        m_ = torch.nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+        if isinstance(c2, list):
+            is_backbone = True
+            m_ = m
+            m_.backbone = True
+        else:
+            m_ = torch.nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
+        # m_ = torch.nn.Sequential(*(m(*args) for _ in range(n))) if n > 1 else m(*args)  # module
         t = str(m)[8:-2].replace("__main__.", "")  # module type
-        m_.np = sum(x.numel() for x in m_.parameters())  # number params
-        m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+        m.np = sum(x.numel() for x in m_.parameters())  # number params
+        # m_.np = sum(x.numel() for x in m_.parameters())  # number params
+
+        m_.i, m_.f, m_.type, m_.np = i + 4 if is_backbone else i, f, t, m.np  # attach index, 'from' index, type, number params
+        # m_.i, m_.f, m_.type = i, f, t  # attach index, 'from' index, type
+
         if verbose:
             LOGGER.info(f"{i:>3}{str(f):>20}{n_:>3}{m_.np:10.0f}  {t:<45}{str(args):<30}")  # print
-        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+        save.extend(x % (i + 4 if is_backbone else i) for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+        # save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+
         layers.append(m_)
         if i == 0:
             ch = []
-        ch.append(c2)
+        if isinstance(c2, list):
+            ch.extend(c2)
+            for _ in range(5 - len(ch)):
+                ch.insert(0, 0)
+        else:
+            ch.append(c2)
+        # layers.append(m_)
+        # if i == 0:
+        #     ch = []
+        # ch.append(c2)
+
     return torch.nn.Sequential(*layers), sorted(save)
 
 
