@@ -643,3 +643,41 @@ class MHSA(nn.Module):
         out = torch.matmul(v, attention.permute(0, 1, 3, 2))  # 1,4,256,64
         out = out.view(n_batch, C, width, height)
         return out
+
+'''dcnv4'''
+try:
+    from DCNv4_op.DCNv4.modules.dcnv4 import DCNv4
+except ImportError as e:
+    print(e)
+    pass
+
+def autopad(k, p=None, d=1):  # kernel, padding, dilation
+    """Pad to 'same' shape outputs."""
+    if d > 1:
+        k = d * (k - 1) + 1 if isinstance(k, int) else [d * (x - 1) + 1 for x in k]  # actual kernel-size
+    if p is None:
+        p = k // 2 if isinstance(k, int) else [x // 2 for x in k]  # auto-pad
+    return p
+
+class DCN_v4(nn.Module):
+    default_act = nn.SiLU()
+
+    def __init__(self, c, k=3, s=1, p=None, d=1, gc=8, dk=3, act=True):
+        super().__init__()
+        assert k==3
+        self.conv = DCNv4(c, k, s, autopad(k, p, d), group=c//gc, dw_kernel_size=dk, without_pointwise=False, output_bias=False)
+
+    def forward(self, x):
+        """Apply convolution, batch normalization and activation to input tensor."""
+        return self.conv(x)
+
+class DCNv4_Conv(nn.Module):
+    def __init__(self, c1, c2, k=3, s=1, p=None, g=1, d=1, gc=8, dk=3, act=True, e=1.0):
+        super().__init__()
+        assert k==3
+        c = int(c1 * e)//gc*gc
+        # self.cv1 = Conv(c1, c, 1, 1, act=False)
+        self.cv1 = nn.Conv2d(c1, c, 1, 1)
+        self.conv = DCN_v4(c, k, s, autopad(k, p, d), d, dk=dk, gc=gc)
+        # self.conv = DCNv4(c, k, s, autopad(k, p, d), group=dg, dw_kernel_size=dk, without_pointwise=False, output_bias=False)
+        self.cv2 = Conv(c, c2, 1, 1)

@@ -58,6 +58,7 @@ from .block import (
     ResNetLayer,
     SCDown,
     TorchVision,
+    DCNv4_C2f,
 )
 from .conv import (
     CBAM,
@@ -79,6 +80,8 @@ from .conv import (
     ECA,
     ShuffleAttention,
     MHSA,
+    DCN_v4,
+    DCNv4_Conv,
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -182,4 +185,7 @@ __all__ = (
     "MHSA",
     "SwinV2_CSPB",
     "mobilenetv4_conv_large",
+    "DCN_v4",
+    "DCNv4_Conv",
+    "DCNv4_C2f",
 )

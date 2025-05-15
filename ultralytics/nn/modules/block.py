@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 from ultralytics.utils.torch_utils import fuse_conv_and_bn
 
-from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad
+from .conv import Conv, DWConv, GhostConv, LightConv, RepConv, autopad, DCNv4_Conv, DCN_v4
 from .transformer import TransformerBlock
 
 __all__ = (
@@ -50,6 +50,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "DCNv4_C2f",
 )
 
 
@@ -1356,3 +1357,71 @@ class A2C2f(nn.Module):
         if self.gamma is not None:
             return x + self.gamma.view(-1, len(self.gamma), 1, 1) * y
         return y
+
+'''DCNv4_C2f'''
+class DBottleneck(nn.Module):
+    """Standard bottleneck."""
+
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5, de=1.0, gc=8):
+        """Initializes a standard bottleneck module with optional shortcut connection and configurable parameters."""
+        super().__init__()
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = DCNv4_Conv(c1, c_, k[0], e=de, gc=gc)
+        self.cv2 = DCNv4_Conv(c_, c2, k[1], g=g, e=de, gc=gc)
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        """Applies the YOLO FPN to input data."""
+        return x + self.cv2(self.cv1(x)) if self.add else self.cv2(self.cv1(x))
+class DBottleneck2(nn.Module):
+    """Standard bottleneck."""
+
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5, gc=16):
+        """Initializes a standard bottleneck module with optional shortcut connection and configurable parameters."""
+        super().__init__()
+        c_ = int(c2 * e)//gc*gc  # hidden channels
+        self.pw1 = Conv(c1, c_, 1, 1)
+        self.cv1 = DCN_v4(c_, k[0], gc=gc)
+        self.cv2 = DCN_v4(c_, k[1], gc=gc)
+        self.pw2 = Conv(c_, c2, 1, 1)
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        """Applies the YOLO FPN to input data."""
+        x_ = self.pw2(self.cv2(self.cv1(self.pw1(x))))
+        return x + x_ if self.add else x_
+
+class RepDBottleneck(DBottleneck):
+    """Rep bottleneck."""
+
+    def __init__(self, c1, c2, shortcut=True, g=1, k=(3, 3), e=0.5):
+        """Initializes a RepBottleneck module with customizable in/out channels, shortcuts, groups and expansion."""
+        super().__init__(c1, c2, shortcut, g, k, e)
+        c_ = int(c2 * e)  # hidden channels
+        self.cv1 = RepConv(c1, c_, k[0], 1)
+class DCNv4_C2f(nn.Module):
+    """Faster Implementation of CSP Bottleneck with 2 convolutions."""
+
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5, gc=8):
+        """Initializes a CSP bottleneck with 2 convolutions and n Bottleneck blocks for faster processing."""
+        super().__init__()
+        self.c = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, 2 * self.c, 1, 1)
+        self.cv2 = Conv((2 + n) * self.c, c2, 1)  # optional act=FReLU(c2)
+         # 8:1.2, 16:1.4
+         # dbottleneck2 16: 1.4
+        self.m = nn.ModuleList(DBottleneck(self.c, self.c, shortcut, g, k=(3, 3), e=1.0, de=1.1, gc=gc) for _ in range(n))
+        # self.m = nn.ModuleList(DBottleneck2(self.c, self.c, shortcut, g, k=(3, 3), e=1.5, gc=gc) for _ in range(n))
+
+
+    def forward(self, x):
+        """Forward pass through C2f layer."""
+        y = list(self.cv1(x).chunk(2, 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
+
+    def forward_split(self, x):
+        """Forward pass using split() instead of chunk()."""
+        y = list(self.cv1(x).split((self.c, self.c), 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))

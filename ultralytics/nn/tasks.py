@@ -73,6 +73,7 @@ from ultralytics.nn.modules import (
     MHSA,
     SwinV2_CSPB,
     mobilenetv4_conv_large,
+    DCNv4_C2f,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1111,6 +1112,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2fCIB,
             A2C2f,
             SwinV2_CSPB,
+            DCNv4_C2f,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1130,6 +1132,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2fCIB,
             C2PSA,
             A2C2f,
+            DCNv4_C2f,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
