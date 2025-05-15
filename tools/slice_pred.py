@@ -186,6 +186,6 @@ if __name__ == "__main__":
         scale_factor=0.5  # Scale image to 50% size
     )
     predictor.predict_and_save(
-        image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_01.png",
-        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred5"
+        image_path="/home/Mos/OtherDisks/TiPlus7100/Datasets/Rebuild/ZJRKY-jyx/plot1.png",
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred4"
     )

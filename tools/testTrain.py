@@ -10,7 +10,7 @@ def main():
         data="MKSD.yaml",
         epochs=2,
         imgsz=640,
-        batch=2,
+        batch=16,
         degrees=180,
         box=30,
         # half=False,   # ACmix
