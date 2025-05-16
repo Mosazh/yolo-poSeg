@@ -646,7 +646,7 @@ class MHSA(nn.Module):
 
 '''dcnv4'''
 try:
-    from DCNv4_op.DCNv4.modules.dcnv4 import DCNv4
+    from DCNv4.modules.dcnv4 import DCNv4
 except ImportError as e:
     print(e)
     pass
@@ -681,3 +681,5 @@ class DCNv4_Conv(nn.Module):
         self.conv = DCN_v4(c, k, s, autopad(k, p, d), d, dk=dk, gc=gc)
         # self.conv = DCNv4(c, k, s, autopad(k, p, d), group=dg, dw_kernel_size=dk, without_pointwise=False, output_bias=False)
         self.cv2 = Conv(c, c2, 1, 1)
+    def forward(self, x):
+        return self.cv2(self.conv(self.cv1(x)))

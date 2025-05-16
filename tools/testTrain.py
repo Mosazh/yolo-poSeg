@@ -1,34 +1,67 @@
 from ultralytics import YOLO
 
-def main():
+def main(model="yolov8-poseg.yaml",
+         data="MKSD.yaml",
+         epochs=2,
+         imgsz=640,
+         batch=16,
+         degrees=180,
+         box_lw=30,                        # loss weight of box is 30,
+         iouType="Ciou",
+         Inner_iou=False,
+         Focal=False,
+         Focaler=False,
+         loss_alpha=1):
     # Load a model
-    model = YOLO("yolov8-poseg_MobileNetV4.yaml")
+    model = YOLO(model)
 
     # Train the model
     # results = model.train(data="cocoTest-poseg.yaml", device='cuda', optimizer='Adam', epochs=100, imgsz=640, batch=32)
     results = model.train(
-        data="MKSD.yaml",
-        epochs=2,
-        imgsz=640,
-        batch=16,
-        degrees=180,
-        box=30,
-        # half=False,   # ACmix
-        # amp=False,    # ACmix
-        # hsv_h=0.0,    # 关闭色调增强
-        # hsv_s=0.0,    # 关闭饱和度增强
-        # hsv_v=0.0,    # 关闭亮度增强
-        # degrees=0.0,  # 关闭旋转增强
-        # translate=0.0,  # 关闭平移增强
-        # scale=0.0,    # 关闭缩放增强
-        # shear=0.0,    # 关闭剪切增强
-        # perspective=0.0,  # 关闭透视变换
-        # flipud=0.0,   # 关闭上下翻转
-        # fliplr=0.0,   # 关闭左右翻转
-        # mosaic=0.0,   # 关闭Mosaic增强
-        # mixup=0.0     # 关闭MixUp增强
+        data=data,
+        epochs=epochs,
+        imgsz=imgsz,
+        batch=batch,
+        degrees=degrees,
+        box=box_lw,
+        iou_type=iouType,
+        Inner_iou=Inner_iou,
+        Focal=Focal,
+        Focaler=Focaler,
+        alpha=loss_alpha,
     )
 
-if __name__ == '__main__':
+# # Siou
+# model.train(
+    # imgsz=640,
+#     epochs=1, workers=4, batch=8,
+#             iou_type="Siou", Inner_iou=False, Focal=False, Focaler=False)
 
-    main()
+if __name__ == '__main__':
+    MODEL = "yolov8-poseg.yaml"
+    DATA = "MKSD.yaml"
+    EPOCHS = 1
+    IMG_SIZE = 640
+    BATCH = 16
+    DEGREES = 180
+    BOX_LW = 30
+    IOU_TYPE = "Shape-iou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
+    INNER_IOU = False
+    FOCAL = False
+    FOCALER = False
+    LOSS_ALPHA = 1 # AlphaIoU set to 3, IOU_TYPE set to 'iou'
+
+    main(
+         model=MODEL,
+         data=DATA,
+         epochs=EPOCHS,
+         imgsz=IMG_SIZE,
+         batch=BATCH,
+         degrees=DEGREES,
+         box_lw=BOX_LW,
+         iouType=IOU_TYPE,
+         Inner_iou=INNER_IOU,
+         Focal=FOCAL,
+         Focaler=FOCALER,
+         loss_alpha=LOSS_ALPHA
+        )

@@ -260,7 +260,7 @@ def mobilenetv4_conv_large(**kwargs):
 
 if __name__ == "__main__":
     init = torch.randn(1, 3, 640, 640)
-    models = mobilenetv4_conv_large()
+    models = mobilenetv4_conv_small()
     print(models)
     out = models(init)
     for i in out:

@@ -91,25 +91,76 @@ class DFLoss(nn.Module):
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses during training."""
 
-    def __init__(self, reg_max=16):
+    def __init__(self, reg_max=16, imgsz=640, iou_type='Ciou', Inner_iou=False, Focal=False, Focaler=False, epoch=300, alpha=1):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+        self.iou_type = iou_type  # +++
+        self.Inner_iou = Inner_iou  # Inner-IoU
+        self.Focal = Focal  # Focal-IoU
+        self.imgsz = imgsz  # MPDIoU
+        self.Focaler = Focaler  # Focaler-IoU
+        self.epoch = epoch  # Unified-IoU
+        self.alpha = alpha  # AlphaIoU
+
     def forward(self, pred_dist, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask):
         """IoU loss."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
-        # iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
-        # Note: set IoU 
-        iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, SIoU=True, scale=True)
+
+        if self.iou_type == "iou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
+        elif self.iou_type == "Giou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, GIoU=True, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
+        elif self.iou_type == "Diou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, DIoU=True, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
+        elif self.iou_type == "Siou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, SIoU=True, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
+        elif self.iou_type == "Eiou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, EIoU=True, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
+        elif self.iou_type == "Wise-iou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, WIoU=True, Inner_iou=self.Inner_iou, scale=True)
+
+        elif self.iou_type == "MPDiou":
+            # 仅针对正方形image输入
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, MPDIoU=True, Inner_iou=self.Inner_iou, feat_w=self.imgsz, feat_h=self.imgsz)
+
+        elif self.iou_type == "Shape-iou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, ShapeIou=True, Inner_iou=self.Inner_iou, ShapeIou_scale=0)
+
+        elif self.iou_type == "Powerful-iou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, PIouV1=True, PIouV2=False, PIou_Lambda=1.3)
+
+        elif self.iou_type == "Unified-iou":
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=True, UIoU=True, epoch=self.epoch)
+
+        else:
+            # 默认Ciou
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True, Inner_iou=self.Inner_iou, Focal=self.Focal, alpha=self.alpha)
+
         if type(iou) is tuple:
             if len(iou) == 2:
                 loss_iou = ((1.0 - iou[0]) * iou[1].detach() * weight).sum() / target_scores_sum
             else:
                 loss_iou = (iou[0] * iou[1] * weight).sum() / target_scores_sum
-        else:
-            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
-        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        elif self.iou_type == "Powerful-iou":
+            # 已在bbox_iou求得1-iou
+            loss_iou = (iou * weight).sum() / target_scores_sum
+
+        else:
+            if self.Focaler:
+                # 引入 Focaler-IoU 回归样本 https://arxiv.org/abs/2401.10525
+                # default d=0.00,u=0.95
+                d = 0.00
+                u = 0.95
+                iou = ((iou - d) / (u - d)).clamp(0, 1)
+
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
         # DFL loss
         if self.dfl_loss:
@@ -120,6 +171,8 @@ class BboxLoss(nn.Module):
             loss_dfl = torch.tensor(0.0).to(pred_dist.device)
 
         return loss_iou, loss_dfl
+
+
 
 
 class RotatedBboxLoss(BboxLoss):
@@ -183,7 +236,9 @@ class v8DetectionLoss:
         self.use_dfl = m.reg_max > 1
 
         self.assigner = TaskAlignedAssigner(topk=tal_topk, num_classes=self.nc, alpha=0.5, beta=6.0)
-        self.bbox_loss = BboxLoss(m.reg_max).to(device)
+        # self.bbox_loss = BboxLoss(m.reg_max).to(device)
+        self.bbox_loss = BboxLoss(m.reg_max, self.hyp.imgsz, self.hyp.iou_type, self.hyp.Inner_iou, self.hyp.Focal, self.hyp.Focaler, self.hyp.epochs, self.hyp.alpha).to(device)
+
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
     def preprocess(self, targets, batch_size, scale_tensor):

@@ -125,5 +125,12 @@ crop_fraction: 1.0 # (float) image crop fraction for classification (0.1-1), 1.0
 cfg: # (str, optional) for overriding defaults.yaml
 sigma_factor: 0.01
 
+# IOUloss settings ------------------------------------------------------------------------------------------------------
+iou_type: Ciou  # support iou/Giou/Diou/Ciou/Siou/Eiou/Wise-iou/MPDiou/Shape-iou/Powerful-iou/Unified-iou
+Inner_iou: False  # only support iou/Giou/Diou/Ciou/Siou/Eiou/Wise-iou/MPDiou/Shape-iou/Unified-iou, 不与alpha系列共用
+Focal: False  # only supportiou/Giou/Diou/Ciou/Siou/Eiou/Unified-iou
+Focaler: False  # only support iou/Giou/Diou/Ciou/Siou/Eiou//MPDiou/Shape-iou/Unified-iou
+alpha: 1  # only support iou/Giou/Diou/Ciou/Siou/Eiou, 不与Inner_iou系列共用, 默认值为1
+
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]
