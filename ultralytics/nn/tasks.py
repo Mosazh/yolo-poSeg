@@ -74,6 +74,7 @@ from ultralytics.nn.modules import (
     SwinV2_CSPB,
     mobilenetv4_conv_large,
     DCNv4_C2f,
+    PPA,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1113,6 +1114,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             A2C2f,
             SwinV2_CSPB,
             DCNv4_C2f,
+            PPA,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1217,6 +1219,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
         elif m in (mobilenetv4_conv_large,):
             m = m(*args)
             c2 = m.channels
+        elif m in {PPA}:
+            c2 = ch[f]
+            args = [c2, *args]
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]

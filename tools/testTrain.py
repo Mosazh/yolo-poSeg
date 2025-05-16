@@ -38,8 +38,9 @@ def main(model="yolov8-poseg.yaml",
 #             iou_type="Siou", Inner_iou=False, Focal=False, Focaler=False)
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg.yaml"
-    DATA = "MKSD.yaml"
+    MODEL = "yolo11_neck_ppa.yaml"
+    # DATA = "MKSD.yaml"
+    DATA = 'coco128.yaml'
     EPOCHS = 1
     IMG_SIZE = 640
     BATCH = 16
