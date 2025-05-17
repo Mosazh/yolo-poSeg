@@ -73,6 +73,7 @@ from ultralytics.nn.modules import (
     MHSA,
     SwinV2_CSPB,
     mobilenetv4_conv_large,
+    convnextv2_atto,
     DCNv4_C2f,
     PPA,
     SEAM,
@@ -1221,9 +1222,13 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c2, *args]
         elif m is MHSA:
             args = [ch[f], *args[0:]]
-        elif m in (mobilenetv4_conv_large,):
-            m = m(*args)
-            c2 = m.channels
+        elif m in (mobilenetv4_conv_large, convnextv2_atto):
+            if m is convnextv2_atto:
+                m = m(*args)
+                c2 = m.channel
+            else:
+                m = m(*args)
+                c2 = m.channels
         elif m in {PPA}:
             c2 = ch[f]
             args = [c2, *args]

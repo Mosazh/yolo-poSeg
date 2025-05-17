@@ -104,6 +104,7 @@ from .MobileNetV4 import mobilenetv4_conv_large
 from .PPA  import PPA
 from .seam import SEAM, MultiSEAM
 from .ALSS import ALSS
+from .ConvNeXtv2 import convnextv2_atto
 
 __all__ = (
     "Conv",
@@ -195,4 +196,5 @@ __all__ = (
     "SEAM",
     "MultiSEAM",
     "ALSS",
+    "convnextv2_atto",
 )

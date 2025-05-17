@@ -1,4 +1,4 @@
-# https://arxiv.org/abs/2004.04581
+# https://arxiv.org/abs/2208.02019
 
 import torch
 import torch.nn as nn
@@ -114,3 +114,9 @@ class MultiSEAM(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         y = torch.exp(y)
         return x * y.expand_as(x)
+
+if __name__ == '__main__':
+    input_tensor = torch.randn(1, 128, 160, 160)
+    seam = SEAM(128)
+    output = seam(input_tensor)
+    print(output.shape)

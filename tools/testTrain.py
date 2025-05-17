@@ -38,14 +38,14 @@ def main(model="yolov8-poseg_ALSS.yaml",
 #             iou_type="Siou", Inner_iou=False, Focal=False, Focaler=False)
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_ALSS.yaml"
+    MODEL = "yolov8-poseg_ConvNeXtv2.yaml"
     DATA = "MKSD.yaml"
     EPOCHS = 1
     IMG_SIZE = 640
     BATCH = 16
     DEGREES = 180
     BOX_LW = 30
-    IOU_TYPE = "Shape-iou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
+    IOU_TYPE = "Siou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
     INNER_IOU = False
     FOCAL = False
     FOCALER = False

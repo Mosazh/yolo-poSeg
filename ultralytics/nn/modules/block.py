@@ -1358,21 +1358,6 @@ class A2C2f(nn.Module):
             return x + self.gamma.view(-1, len(self.gamma), 1, 1) * y
         return y
 
-    def forward(self, x):
-        x_skip = self.skip(x)
-        x_lga2 = self.lga2(x_skip)
-        x_lga4 = self.lga4(x_skip)
-        x1 = self.c1(x)
-        x2 = self.c2(x1)
-        x3 = self.c3(x2)
-        x = x1 + x2 + x3 + x_skip + x_lga2 + x_lga4
-        x = self.cn(x)
-        x = self.sa(x)
-        x = self.drop(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        return x
-
 '''DCNv4_C2f'''
 class DBottleneck(nn.Module):
     """Standard bottleneck."""

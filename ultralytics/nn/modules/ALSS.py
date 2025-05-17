@@ -196,7 +196,13 @@ if __name__ == '__main__':
     print(f'Output shape: {output2.shape}')
 
     input_tensor2 = torch.randn(1, 128, 160, 160)
-    Alss = ALSS(128, 128, 1, 0.4, 0.4, 1, True, -1)
-    output3 = Alss.forward(input_tensor2)
+    Alss_1 = ALSS(128, 128, 1, 0.4, 0.4, 1, True, -1)
+    output3 = Alss_1.forward(input_tensor2)
     print(f'Input shape: {input_tensor2.shape}')
     print(f'Output shape: {output3.shape}')
+
+    input_tensor3 = torch.randn(1, 256, 80, 80)
+    Alss_2 = ALSS(256, 256, 1, 0.4, 0.4, 1, True, -1)
+    output4 = Alss_2.forward(input_tensor3)
+    print(f'Input shape: {input_tensor3.shape}')
+    print(f'Output shape: {output4.shape}')
