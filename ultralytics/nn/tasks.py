@@ -75,6 +75,9 @@ from ultralytics.nn.modules import (
     mobilenetv4_conv_large,
     DCNv4_C2f,
     PPA,
+    SEAM,
+    MultiSEAM,
+    ALSS,
 
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
@@ -1115,6 +1118,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SwinV2_CSPB,
             DCNv4_C2f,
             PPA,
+            ALSS,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1135,6 +1139,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C2PSA,
             A2C2f,
             DCNv4_C2f,
+            ALSS,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -1211,7 +1216,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             oup = args[0]
             reduction = args[1] if len(args) > 1 else 32  # default reduction=32
             args = [c1, oup, reduction]  #inp, oup, reduction
-        elif m is MLLAttention:
+        elif m in {SEAM, MultiSEAM, MLLAttention}:
             c2 = ch[f]
             args = [c2, *args]
         elif m is MHSA:

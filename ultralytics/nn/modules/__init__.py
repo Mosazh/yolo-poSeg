@@ -102,6 +102,8 @@ from .mlla import MLLAttention
 from .SwinTransformer import SwinV2_CSPB
 from .MobileNetV4 import mobilenetv4_conv_large
 from .PPA  import PPA
+from .seam import SEAM, MultiSEAM
+from .ALSS import ALSS
 
 __all__ = (
     "Conv",
@@ -190,4 +192,7 @@ __all__ = (
     "DCNv4_Conv",
     "DCNv4_C2f",
     "PPA",
+    "SEAM",
+    "MultiSEAM",
+    "ALSS",
 )

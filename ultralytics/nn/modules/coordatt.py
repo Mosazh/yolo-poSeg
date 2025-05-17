@@ -50,8 +50,10 @@ class h_swish(nn.Module):
 
 class CoordAtt(nn.Module):
 
-    def __init__(self, inp, oup, reduction=32): # inp: number of input channel, oup: number of output channel
+    def __init__(self, inp, oup=None, reduction=32): # inp: number of input channel, oup: number of output channel
         super(CoordAtt, self).__init__()
+        if oup is None:
+            oup = inp
         self.pool_h = nn.AdaptiveAvgPool2d((None, 1))
         self.pool_w = nn.AdaptiveAvgPool2d((1, None))
 

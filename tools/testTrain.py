@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-def main(model="yolov8-poseg.yaml",
+def main(model="yolov8-poseg_ALSS.yaml",
          data="MKSD.yaml",
          epochs=2,
          imgsz=640,
@@ -38,9 +38,8 @@ def main(model="yolov8-poseg.yaml",
 #             iou_type="Siou", Inner_iou=False, Focal=False, Focaler=False)
 
 if __name__ == '__main__':
-    MODEL = "yolo11_neck_ppa.yaml"
-    # DATA = "MKSD.yaml"
-    DATA = 'coco128.yaml'
+    MODEL = "yolov8-poseg_ALSS.yaml"
+    DATA = "MKSD.yaml"
     EPOCHS = 1
     IMG_SIZE = 640
     BATCH = 16

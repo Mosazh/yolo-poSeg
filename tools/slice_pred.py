@@ -178,7 +178,7 @@ class SlidingWindowPredictor:
 
 if __name__ == "__main__":
     predictor = SlidingWindowPredictor(
-        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original_iouSigma_0.05_box_30/weights/best.pt",
+        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original-v8_siou_iouSigma_0.05_box_30/weights/last.pt",
         window_size=2560,  # Reduced from 2560
         overlap=0,  # Increased overlap to maintain coverage
         device='cpu',
@@ -187,5 +187,5 @@ if __name__ == "__main__":
     )
     predictor.predict_and_save(
         image_path="/home/Mos/OtherDisks/TiPlus7100/Datasets/Rebuild/ZJRKY-jyx/plot1.png",
-        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred4"
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred1"
     )
