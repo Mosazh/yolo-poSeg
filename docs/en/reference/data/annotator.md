@@ -14,3 +14,9 @@ keywords: Ultralytics, image annotation, YOLO, SAM, Python script, GitHub, objec
 ## ::: ultralytics.data.annotator.auto_annotate
 
 <br><br>
+
+<br><br><hr><br>
+
+## ::: ultralytics.data.augment.CutMix
+
+<br><br><hr><br>

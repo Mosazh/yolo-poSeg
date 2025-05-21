@@ -317,7 +317,7 @@ class Compose:
 
 class BaseMixTransform:
     """
-    Base class for mix transformations like MixUp and Mosaic.
+    Base class for mix transformations like Cutmix, MixUp and Mosaic.
 
     This class provides a foundation for implementing mix transformations on datasets. It handles the
     probability-based application of transforms and manages the mixing of multiple images and labels.
@@ -348,7 +348,7 @@ class BaseMixTransform:
 
     def __init__(self, dataset, pre_transform=None, p=0.0) -> None:
         """
-        Initializes the BaseMixTransform object for mix transformations like MixUp and Mosaic.
+        Initializes the BaseMixTransform object for mix transformations like CutMix, MixUp and Mosaic.
 
         This class serves as a base for implementing mix transformations in image processing pipelines.
 
@@ -368,16 +368,16 @@ class BaseMixTransform:
 
     def __call__(self, labels):
         """
-        Applies pre-processing transforms and mixup/mosaic transforms to labels data.
+        Applies pre-processing transforms and cutmix/mixup/mosaic transforms to labels data.
 
         This method determines whether to apply the mix transform based on a probability factor. If applied, it
         selects additional images, applies pre-transforms if specified, and then performs the mix transform.
 
         Args:
-            labels (Dict): A dictionary containing label data for an image.
+            labels (dict): A dictionary containing label data for an image.
 
         Returns:
-            (Dict): The transformed labels dictionary, which may include mixed data from other images.
+            (dict): The transformed labels dictionary, which may include mixed data from other images.
 
         Examples:
             >>> transform = BaseMixTransform(dataset, pre_transform=None, p=0.5)
@@ -391,7 +391,7 @@ class BaseMixTransform:
         if isinstance(indexes, int):
             indexes = [indexes]
 
-        # Get images information will be used for Mosaic or MixUp
+        # Get images information will be used for Mosaic, CutMix or MixUp
         mix_labels = [self.dataset.get_image_and_label(i) for i in indexes]
 
         if self.pre_transform is not None:
@@ -401,24 +401,24 @@ class BaseMixTransform:
 
         # Update cls and texts
         labels = self._update_label_text(labels)
-        # Mosaic or MixUp
+        # Mosaic, CutMix or MixUp
         labels = self._mix_transform(labels)
         labels.pop("mix_labels", None)
         return labels
 
     def _mix_transform(self, labels):
         """
-        Applies MixUp or Mosaic augmentation to the label dictionary.
+        Applies CutMix, MixUp or Mosaic augmentation to the label dictionary.
 
-        This method should be implemented by subclasses to perform specific mix transformations like MixUp or
+        This method should be implemented by subclasses to perform specific mix transformations like CutMix, MixUp or
         Mosaic. It modifies the input label dictionary in-place with the augmented data.
 
         Args:
-            labels (Dict): A dictionary containing image and label data. Expected to have a 'mix_labels' key
+            labels (dict): A dictionary containing image and label data. Expected to have a 'mix_labels' key
                 with a list of additional image and label data for mixing.
 
         Returns:
-            (Dict): The modified labels dictionary with augmented data after applying the mix transform.
+            (dict): The modified labels dictionary with augmented data after applying the mix transform.
 
         Examples:
             >>> transform = BaseMixTransform(dataset)
@@ -439,7 +439,7 @@ class BaseMixTransform:
             >>> indexes = transform.get_indexes()
             >>> print(indexes)  # [3, 18, 7, 2]
         """
-        raise NotImplementedError
+        return random.randint(0, len(self.dataset) - 1)
 
     @staticmethod
     def _update_label_text(labels):
@@ -450,11 +450,11 @@ class BaseMixTransform:
         creating a unified set of text labels and updating class IDs accordingly.
 
         Args:
-            labels (Dict): A dictionary containing label information, including 'texts' and 'cls' fields,
+            labels (dict): A dictionary containing label information, including 'texts' and 'cls' fields,
                 and optionally a 'mix_labels' field with additional label dictionaries.
 
         Returns:
-            (Dict): The updated labels dictionary with unified text labels and updated class IDs.
+            (dict): The updated labels dictionary with unified text labels and updated class IDs.
 
         Examples:
             >>> labels = {
