@@ -1,0 +1,24 @@
+{
+    "model": {
+        "1": "yolov8-poseg",
+        "2": "yolov8-poseg_acmix",
+        "3": "yolov8-poseg_ALSS",
+        "4": "yolov8-poseg_ALSS_v2",
+        "5": "yolov8-poseg_cbam",
+        "6": "yolov8-poseg_coordatt",
+        "7": "yolov8-poseg_eca",
+        "8": "yolov8-poseg_mhsa",
+        "9": "yolov8-poseg_mlla",
+        "10": "yolov8-poseg_MobileNetV4",
+        "11": "yolov8-poseg_SEAM",
+        "12": "yolov8-poseg_SEAM_v2",
+        "13": "yolov8-poseg_MultiSEAM",
+        "14": "yolov8-poseg_ShuffleAttention"
+    },
+
+    "iouType": {
+        "1": "Ciou",
+        "2": "Siou",
+        "3": "Shape-iou"
+    }
+}

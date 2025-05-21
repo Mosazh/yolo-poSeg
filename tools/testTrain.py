@@ -1,10 +1,11 @@
 from ultralytics import YOLO
 
-def main(model="yolov8-poseg_ALSS.yaml",
+def main(model="yolov8-poseg.yaml",
          data="MKSD.yaml",
          epochs=2,
          imgsz=640,
          batch=16,
+         multi_scale=True,
          degrees=180,
          box_lw=30,                        # loss weight of box is 30,
          scale=0.5,
@@ -18,6 +19,7 @@ def main(model="yolov8-poseg_ALSS.yaml",
          Focal=False,
          Focaler=False,
          loss_alpha=1):
+
     # Load a model
     model = YOLO(model)
 
@@ -28,6 +30,7 @@ def main(model="yolov8-poseg_ALSS.yaml",
         epochs=epochs,
         imgsz=imgsz,
         batch=batch,
+        multi_scale=multi_scale,
         degrees=degrees,
         box=box_lw,
         scale=scale,
@@ -43,18 +46,14 @@ def main(model="yolov8-poseg_ALSS.yaml",
         alpha=loss_alpha,
     )
 
-# # Siou
-# model.train(
-    # imgsz=640,
-#     epochs=1, workers=4, batch=8,
-#             iou_type="Siou", Inner_iou=False, Focal=False, Focaler=False)
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_ConvNeXtv2.yaml"
+    MODEL = "yolov8-poseg.yaml"
     DATA = "MKSD.yaml"
     EPOCHS = 1
     IMG_SIZE = 640
     BATCH = 16
+    MULTI_SCALE = True
     DEGREES = 180
     BOX_LW = 30         # loss weight of box is 30,
     SCALE = 1.0
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     FLIPLR = 1
     CUTMIX = 1
     MIXUP = 0
-    IOU_TYPE = "Siou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
+    IOU_TYPE = "Ciou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
     INNER_IOU = False
     FOCAL = False
     FOCALER = False
@@ -75,6 +74,7 @@ if __name__ == '__main__':
          epochs=EPOCHS,
          imgsz=IMG_SIZE,
          batch=BATCH,
+         multi_scale=MULTI_SCALE,
          degrees=DEGREES,
          box_lw=BOX_LW,
          scale=SCALE,
