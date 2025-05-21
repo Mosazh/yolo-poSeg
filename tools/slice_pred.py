@@ -177,15 +177,31 @@ class SlidingWindowPredictor:
         return merged_img
 
 if __name__ == "__main__":
+    """kpt prediction"""
     predictor = SlidingWindowPredictor(
-        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original-v8_siou_iouSigma_0.05_box_30/weights/last.pt",
+        model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-mobilenetv4-v8_siou_iouSigma_0.05_box_30/weights/best.pt",
         window_size=2560,  # Reduced from 2560
         overlap=0,  # Increased overlap to maintain coverage
         device='cpu',
-        save_window_vis=False,  # Disabled to save memory
-        scale_factor=0.5  # Scale image to 50% size
+        save_window_vis=True,  # Disabled to save memory
+        scale_factor=1  # Scale image to 50% size
     )
     predictor.predict_and_save(
-        image_path="/home/Mos/OtherDisks/TiPlus7100/Datasets/Rebuild/ZJRKY-jyx/plot1.png",
-        output_dir="/home/Mos/Desktop/mtemp/complete_test/pred1"
+        image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_02.png",
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/ZJRKY-jyx_pred/pred_v8_iouSigma_0.05_box_30_window5120_overlap0_scale0.2"
     )
+
+    # """mask prediction"""
+    # predictor = SlidingWindowPredictor(
+    #     model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg/poSeg-original-v8_iouSigma_0.05_box_30/weights/best.pt",
+    #     window_size=2560,  # Reduced from 2560
+    #     overlap=0,  # Increased overlap to maintain coverage
+    #     device='cpu',
+    #     save_window_vis=False,  # Disabled to save memory
+    #     scale_factor=1  # Scale image to 50% size
+    # )
+    # predictor.predict_and_save(
+    #     image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_02.png",
+    #     output_dir="/home/Mos/Desktop/mtemp/complete_test/ZJRKY-jyx_pred/pred_v8_iouSigma_0.05_box_30_window5120_overlap0_scale0.2"
+    # )
+
