@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import argparse
 from ultralytics import YOLO
 
@@ -56,8 +57,11 @@ if __name__ == '__main__':
     # params_from_cli = parse_arguments()
     # main(params_from_cli)
 
+    # 配置日志记录，设置日志文件的完整路径
+    log_file_path = "training_results.log"
+    logging.basicConfig(filename=log_file_path, level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
     # 直接在代码中传递参数
-
     try:
         with open("tools/train_params.json", "r") as f:
             pfj = json.load(f)                          # params_from_json
@@ -69,7 +73,7 @@ if __name__ == '__main__':
         'data': "MKSD.yaml",
         'epochs': 1,
         'imgsz': 640,
-        'batch': 16,
+        'batch': 64,
         'multi_scale': True,
         'degrees': 180,
         'box_lw': 30,
@@ -86,15 +90,37 @@ if __name__ == '__main__':
         'loss_alpha': 1,
     }
 
-    combinations = []
     for model in pfj["model"].values():
         for iouType in pfj["iouType"].values():
-            params_directly['model'] = model
-            params_directly['iouType'] = iouType
-            dirname = params_directly['model'].split('.')[0] + '_' + params_directly['iouType']
-            params_directly['name'] = dirname
-            # main(params_directly)
-            # print(params_directly)
-            print(model, iouType)
+            try:
+                # 构造参数
+                params_directly["model"] = f"{model}.yaml"
+                params_directly["iouType"] = iouType
+                dirname = params_directly["model"].split('.')[0] + '_' + params_directly['iouType']
+                params_directly["name"] = dirname
 
-    # main(params_directly)
+                if "acmix" in params_directly["model"]:
+                    params_directly["batch"] = 8
+
+                # 调用主函数
+                main(params_directly)
+
+                # 记录成功的日志
+                logging.info(json.dumps({
+                    'model': params_directly["model"],
+                    'iouType': params_directly["iouType"],
+                    'status': 'success'
+                }))
+
+            except Exception as e:
+                # 打印并记录错误信息
+                error_message = f"Error occurred with model={model}, iouType={iouType}: {str(e)}"
+                print(error_message)
+
+                # 记录失败的日志
+                logging.error(json.dumps({
+                    'model': f"{model}.yaml",
+                    'iouType': iouType,
+                    'status': 'failed',
+                    'error': str(e)
+                }))
