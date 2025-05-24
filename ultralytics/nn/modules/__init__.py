@@ -83,6 +83,7 @@ from .conv import (
     MHSA,
     DCN_v4,
     DCNv4_Conv,
+    ELA,
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -107,6 +108,7 @@ from .seam import SEAM, MultiSEAM
 from .ALSS import ALSS
 from .ConvNeXtv2 import convnextv2_atto
 from .GAM_Attention import GAM_Attention
+from .MLKA import MLKA_Ablation
 
 __all__ = (
     "Conv",
@@ -201,4 +203,6 @@ __all__ = (
     "convnextv2_atto",
     "Concat_BiFPN",
     "GAM_Attention",
+    "MLKA_Ablation",
+    "ELA",
 )

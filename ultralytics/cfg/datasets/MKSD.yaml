@@ -14,6 +14,7 @@ kpt_shape: [1, 3] # number of keypoints, number of dims (2 for x,y or 3 for x,y,
 names:
   0: BananaTree
   1: Ditch
+  2: Road
 
 # pose
 kpt_names:

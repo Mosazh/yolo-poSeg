@@ -683,3 +683,29 @@ class DCNv4_Conv(nn.Module):
         self.cv2 = Conv(c, c2, 1, 1)
     def forward(self, x):
         return self.cv2(self.conv(self.cv1(x)))
+
+"""ELA: Efficient Local Attention"""
+# https://github.com/joshua-atolagbe/YOLO-ELA/tree/master
+class ELA(nn.Module):
+    """Constructs an Efficient Local Attention module.
+    Args:
+        channel: Number of channels of the input feature map
+        kernel_size: Adaptive selection of kernel size
+    """
+    def __init__(self, channel, kernel_size=7):
+        super(ELA, self).__init__()
+
+        self.conv = nn.Conv1d(channel, channel, kernel_size=kernel_size, padding=kernel_size//2,
+        		      groups=channel, bias=False)
+        self.gn = nn.GroupNorm(16, channel)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+
+        x_h = torch.mean(x, dim=3, keepdim=True).view(B, C, H)
+        x_w = torch.mean(x, dim=2, keepdim=True).view(B, C, W)
+        x_h = self.sigmoid(self.gn(self.conv(x_h))).view(B, C, H, 1)
+        x_w = self.sigmoid(self.gn(self.conv(x_w))).view(B, C, 1, W)
+
+        return x * x_h * x_w
