@@ -59,6 +59,7 @@ from .block import (
     SCDown,
     TorchVision,
     DCNv4_C2f,
+    Concat_BiFPN,
 )
 from .conv import (
     CBAM,
@@ -105,6 +106,7 @@ from .PPA  import PPA
 from .seam import SEAM, MultiSEAM
 from .ALSS import ALSS
 from .ConvNeXtv2 import convnextv2_atto
+from .GAM_Attention import GAM_Attention
 
 __all__ = (
     "Conv",
@@ -197,4 +199,6 @@ __all__ = (
     "MultiSEAM",
     "ALSS",
     "convnextv2_atto",
+    "Concat_BiFPN",
+    "GAM_Attention",
 )
