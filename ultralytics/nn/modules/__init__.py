@@ -81,9 +81,11 @@ from .conv import (
     ECA,
     ShuffleAttention,
     MHSA,
-    DCN_v4,
-    DCNv4_Conv,
+    DCN_v4, DCNv4_Conv,
     ELA,
+    SPD,
+    VoVGSCSP, VoVGSCSPC, GSConv,
+
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -205,4 +207,6 @@ __all__ = (
     "GAM_Attention",
     "MLKA_Ablation",
     "ELA",
+    "SPD",
+    "VoVGSCSP", "VoVGSCSPC", "GSConv",
 )
