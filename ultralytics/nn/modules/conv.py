@@ -685,6 +685,7 @@ class DCNv4_Conv(nn.Module):
         return self.cv2(self.conv(self.cv1(x)))
 
 """ELA: Efficient Local Attention"""
+# https://arxiv.org/abs/2403.01123
 # https://github.com/joshua-atolagbe/YOLO-ELA/tree/master
 class ELA(nn.Module):
     """Constructs an Efficient Local Attention module.
@@ -752,7 +753,7 @@ class SPD(nn.Module):
 #                          x[...,size_tensor[2]//2:,0:size_tensor[3]//2],
 #                          x[...,size_tensor[2]//2:,size_tensor[3]//2:]  ],1)
 
-"""GSConv"""
+"""Slim-neck by GSConv"""
 # https://arxiv.org/abs/2206.02424
 # https://github.com/AlanLi1997/slim-neck-by-gsconv
 class GSConv(nn.Module):

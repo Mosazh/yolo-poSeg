@@ -85,6 +85,10 @@ from ultralytics.nn.modules import (
     ELA,
     SPD,
     VoVGSCSP, VoVGSCSPC, GSConv,
+    unireplknet_a, unireplknet_f, unireplknet_p, unireplknet_n, unireplknet_t, unireplknet_s, unireplknet_b, unireplknet_l, unireplknet_xl,
+    SAFMNPP,
+    AFEM,
+    CMRF,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1127,6 +1131,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ALSS,
             GAM_Attention,
             VoVGSCSP, VoVGSCSPC, GSConv,
+            SAFMNPP,
+            CMRF
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1148,6 +1154,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             A2C2f,
             DCNv4_C2f,
             ALSS,
+            CMRF,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -1252,6 +1259,15 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, *args[1:]]
         elif m is SPD:
             c2 = 4 * ch[f]
+        elif m in {unireplknet_a, unireplknet_f, unireplknet_p,
+                   unireplknet_n, unireplknet_t, unireplknet_s,
+                   unireplknet_b, unireplknet_l, unireplknet_xl}:
+            m = m(*args)
+            c2 = m.channel
+        elif m is AFEM:
+            c1 = ch[f]
+            c2 = args[1]
+            args = [c1,c2]
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]

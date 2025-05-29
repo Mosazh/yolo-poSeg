@@ -110,12 +110,6 @@ class SlidingWindowPredictor:
             if hasattr(res, 'keypoints') and res.keypoints is not None:
                 keypoints = res.keypoints.data.cpu().numpy()  # shape: (n, K, 3)
 
-            # Calculate offsets for the padded square image
-            crop_h, crop_w = crop.shape[:2]
-            max_dim = max(crop_h, crop_w)
-            y_offset = (max_dim - crop_h) // 2
-            x_offset = (max_dim - crop_w) // 2
-
             # Process detections
             for i, box in enumerate(res.boxes):
                 cls_idx = int(box.cls.item())
@@ -167,8 +161,10 @@ class SlidingWindowPredictor:
                                     continue
 
                                 # Map back to original image coordinates
-                                global_kp_x = kp_x * scale + x1 * scale
-                                global_kp_y = kp_y * scale + y1 * scale
+                                # global_kp_x = kp_x * scale + x1 * scale
+                                # global_kp_y = kp_y * scale + y1 * scale
+                                global_kp_x = kp_x * scale
+                                global_kp_y = kp_y * scale
 
                                 pts.append((global_kp_x, global_kp_y))
 
@@ -358,13 +354,13 @@ if __name__ == "__main__":
     predictor = SlidingWindowPredictor(
         model_path="/home/Mos/Documents/Complex/MyStudy/new_yolo/train_record/poseg_3class/yolov8-poseg_Ciou/weights/best.pt",
         window_size=2560,
-        overlap=0.3,  # Increased overlap to maintain coverage
+        overlap=0,  # Increased overlap to maintain coverage
         device='cpu',
         save_window_vis=False,  # Disabled to save memory
         scale_factor=0.5  # Scale image to 50% size
     )
     predictor.predict_and_save(
         image_path="/home/Mos/Desktop/mtemp/complete_test/Experimental_plot_03.png",
-        output_dir="/home/Mos/Desktop/mtemp/complete_test/HNLYWD_plot3_pred/pred_v8_Ciou_window2560_overlap0.3_scale0.5"
+        output_dir="/home/Mos/Desktop/mtemp/complete_test/HNLYWD_plot3_pred/predx_v8_Ciou_window2560_overlap0_scale0.5"
     )
 

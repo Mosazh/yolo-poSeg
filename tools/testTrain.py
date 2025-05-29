@@ -48,11 +48,11 @@ def main(model="yolov8-poseg.yaml",
 
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_SlimNeck.yaml"
+    MODEL = "yolov8-poseg_CMRF.yaml"
     DATA = "MKSD.yaml"
     EPOCHS = 1
     IMG_SIZE = 640
-    BATCH = 16
+    BATCH = 1
     MULTI_SCALE = True
     DEGREES = 180
     BOX_LW = 30         # loss weight of box is 30,

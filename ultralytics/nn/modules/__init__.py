@@ -60,6 +60,7 @@ from .block import (
     TorchVision,
     DCNv4_C2f,
     Concat_BiFPN,
+    AFEM,
 )
 from .conv import (
     CBAM,
@@ -111,6 +112,9 @@ from .ALSS import ALSS
 from .ConvNeXtv2 import convnextv2_atto
 from .GAM_Attention import GAM_Attention
 from .MLKA import MLKA_Ablation
+from .UniRepLKNet import unireplknet_a, unireplknet_f, unireplknet_p, unireplknet_n, unireplknet_t, unireplknet_s, unireplknet_b, unireplknet_l, unireplknet_xl
+from .SAFM import SAFMNPP
+from .CMRF import CMRF
 
 __all__ = (
     "Conv",
@@ -209,4 +213,8 @@ __all__ = (
     "ELA",
     "SPD",
     "VoVGSCSP", "VoVGSCSPC", "GSConv",
+    "unireplknet_a", "unireplknet_f", "unireplknet_p", "unireplknet_n", "unireplknet_t", "unireplknet_s", "unireplknet_b", "unireplknet_l", "unireplknet_xl",
+    "SAFMNPP",
+    "AFEM",
+    "CMRF",
 )

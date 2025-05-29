@@ -1441,3 +1441,47 @@ class Concat_BiFPN(nn.Module):
         # Fast normalized fusion
         x = [weight[0] * x[0], weight[1] * x[1]]
         return torch.cat(x, self.d)
+
+"""AFEM"""
+# https://blog.csdn.net/mywhyyds/article/details/144571639
+#---------------AFEM-------------------#
+class AFEM(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(AFEM, self).__init__()
+        # 自适应特征融合模块
+        self.afm = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.SiLU()
+        )
+        # 注意力机制模块
+        self.se = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(out_channels, out_channels // 16, kernel_size=1),
+            nn.SiLU(),
+            nn.Conv2d(out_channels // 16, out_channels, kernel_size=1),
+            nn.Sigmoid()
+        )
+        # 多尺度耦合通道注意力模块
+        self.mscca = nn.Sequential(
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, groups=out_channels),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1)
+        )
+        # 多尺度耦合空间注意力模块
+        self.mscsa = nn.Sequential(
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, groups=1),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1)
+        )
+
+    def forward(self, x):
+        # 自适应特征融合
+        afm_out = self.afm(x)
+        # 注意力机制
+        se_out = self.se(afm_out) * afm_out
+        # 多尺度耦合通道注意力
+        mscca_out = self.mscca(se_out)
+        # 多尺度耦合空间注意力
+        mscsa_out = self.mscsa(se_out)
+        # 特征融合
+        output = se_out + mscca_out + mscsa_out
+        return output
