@@ -89,6 +89,8 @@ from ultralytics.nn.modules import (
     SAFMNPP,
     AFEM,
     CMRF,
+    SimAM,
+    MSAA,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1132,7 +1134,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             GAM_Attention,
             VoVGSCSP, VoVGSCSPC, GSConv,
             SAFMNPP,
-            CMRF
+            CMRF,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1268,6 +1270,14 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c1 = ch[f]
             c2 = args[1]
             args = [c1,c2]
+
+        elif m is SimAM:
+            c1, c2 = ch[f], args[0]
+            if c2 != nc:
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+            args = [c1, *args[1:]]
+        elif m is MSAA:
+            args = [ch[f], ch[f]]
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]

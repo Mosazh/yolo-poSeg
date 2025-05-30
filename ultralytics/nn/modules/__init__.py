@@ -61,6 +61,7 @@ from .block import (
     DCNv4_C2f,
     Concat_BiFPN,
     AFEM,
+    SimAM,
 )
 from .conv import (
     CBAM,
@@ -115,6 +116,7 @@ from .MLKA import MLKA_Ablation
 from .UniRepLKNet import unireplknet_a, unireplknet_f, unireplknet_p, unireplknet_n, unireplknet_t, unireplknet_s, unireplknet_b, unireplknet_l, unireplknet_xl
 from .SAFM import SAFMNPP
 from .CMRF import CMRF
+from .MSAA import MSAA
 
 __all__ = (
     "Conv",
@@ -217,4 +219,6 @@ __all__ = (
     "SAFMNPP",
     "AFEM",
     "CMRF",
+    "SimAM",
+    "MSAA",
 )
