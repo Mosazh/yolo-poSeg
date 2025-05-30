@@ -91,6 +91,7 @@ from ultralytics.nn.modules import (
     CMRF,
     SimAM,
     MSAA,
+    C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1135,6 +1136,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             VoVGSCSP, VoVGSCSPC, GSConv,
             SAFMNPP,
             CMRF,
+            C2f_MultiOGA,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1157,6 +1159,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             DCNv4_C2f,
             ALSS,
             CMRF,
+            C2f_MultiOGA,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -1278,6 +1281,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, *args[1:]]
         elif m is MSAA:
             args = [ch[f], ch[f]]
+        elif m is ChannelAggregationFFN:
+            args = [ch[f], c2]
+        elif m is MultiOrderGatedAggregation:
+            args = [ch[f]]
 
         elif m in frozenset({TorchVision, Index}):
             c2 = args[0]

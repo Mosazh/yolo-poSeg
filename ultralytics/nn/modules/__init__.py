@@ -117,6 +117,7 @@ from .UniRepLKNet import unireplknet_a, unireplknet_f, unireplknet_p, unireplkne
 from .SAFM import SAFMNPP
 from .CMRF import CMRF
 from .MSAA import MSAA
+from .MogaNet import C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation
 
 __all__ = (
     "Conv",
@@ -221,4 +222,5 @@ __all__ = (
     "CMRF",
     "SimAM",
     "MSAA",
+    "C2f_MultiOGA", "ChannelAggregationFFN", "MultiOrderGatedAggregation",  # MogaNet modules
 )
