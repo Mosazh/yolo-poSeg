@@ -1534,10 +1534,7 @@ class PoSegMetrics(SimpleClass):
 
     def class_result(self, i):
         """Return the class-wise detection results for a specific class i."""
-        if i == 0:
-            return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(i)
-        else:
-            return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(0)
+        return self.box.class_result(i) + self.seg.class_result(i) + self.pose.class_result(0)
 
     @property
     def maps(self):
@@ -1548,7 +1545,7 @@ class PoSegMetrics(SimpleClass):
     @property
     def fitness(self):
         """Computes classification metrics and speed using the `targets` and `pred` inputs."""
-        return (self.box.fitness() + self.seg.fitness() + self.pose.fitness()) / 3
+        return self.box.fitness() + self.seg.fitness() + self.pose.fitness()
 
     @property
     def ap_class_index(self):

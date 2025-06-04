@@ -84,7 +84,7 @@ class PoSegValidator(DetectionValidator):
             self.process = ops.process_mask_native # more accurate vs faster
         else:
             self.process = ops.process_mask
-        self.stats = dict(tp_m=[], tp_p=[], tp=[], conf=[], pred_cls=[], target_cls=[], target_img=[])
+        self.stats = dict(tp=[], tp_m=[], tp_p=[], conf=[], pred_cls=[], target_cls=[], target_img=[])
 
     def _prepare_batch(self, si, batch):
         """Prepares a batch for training or inference by processing images and targets."""
@@ -143,13 +143,6 @@ class PoSegValidator(DetectionValidator):
         predn_seg = super()._prepare_pred(pred_seg, pbatch)
         predn_kpt = super()._prepare_pred(pred_kpt, pbatch)
 
-        # pred_masks = self.process(proto, pred_seg[:, 6:], pred_seg[:, :4], shape=pbatch["imgsz"])
-
-        # nk = pbatch["kpts"].shape[1]
-        # pred_kpts = predn_kpt[:, 6:].view(len(predn_kpt), nk, -1)
-        # ops.scale_coords(pbatch["imgsz"], pred_kpts, pbatch["ori_shape"], ratio_pad=pbatch["ratio_pad"])
-        # return predn_seg, pred_masks, predn_kpt, pred_kpts
-
         # Handle empty keypoint predictions
         if predn_kpt.numel() == 0:
             nk = self.kpt_shape[0] if hasattr(self, 'kpt_shape') else 17
@@ -206,6 +199,7 @@ class PoSegValidator(DetectionValidator):
                     predn_seg, bbox, cls, pred_masks=pred_masks,
                     gt_masks=gt_masks, overlap=self.args.overlap_mask, masks=True,
                 )
+                # print("tp vs tp_m:", np.array_equal(stat["tp"], stat["tp_m"]))
                 stat["tp_p"] = self._process_batch(predn_kpt, bbox, cls, pred_kpts=pred_kpts, gt_kpts=pbatch["kpts"])
                 if self.args.plots:
                     self.confusion_matrix.process_batch(predn_seg, bbox, cls)
@@ -243,7 +237,7 @@ class PoSegValidator(DetectionValidator):
                 gt_masks = F.interpolate(gt_masks[None], pred_masks.shape[1:], mode="bilinear", align_corners=False)[0]
                 gt_masks = gt_masks.gt_(0.5)
             iou = mask_iou(gt_masks.view(gt_masks.shape[0], -1), pred_masks.view(pred_masks.shape[0], -1))
-        if pred_kpts is not None and gt_kpts is not None:
+        elif pred_kpts is not None and gt_kpts is not None:
             # `0.53` is from https://github.com/jin-s13/xtcocoapi/blob/master/xtcocotools/cocoeval.py#L384
             area = ops.xyxy2xywh(gt_bboxes)[:, 2:].prod(1) * 0.53
             # Note: 0.05, weight of kpt_iou
