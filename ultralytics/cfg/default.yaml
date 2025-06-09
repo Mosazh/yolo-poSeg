@@ -132,6 +132,8 @@ Inner_iou: False  # only support iou/Giou/Diou/Ciou/Siou/Eiou/Wise-iou/MPDiou/Sh
 Focal: False  # only supportiou/Giou/Diou/Ciou/Siou/Eiou/Unified-iou
 Focaler: False  # only support iou/Giou/Diou/Ciou/Siou/Eiou//MPDiou/Shape-iou/Unified-iou
 alpha: 1  # only support iou/Giou/Diou/Ciou/Siou/Eiou, 不与Inner_iou系列共用, 默认值为1
+nwd_loss: False
+nwdiou_ratio: 0.5 #
 
 # Tracker settings ------------------------------------------------------------------------------------------------------
 tracker: botsort.yaml # (str) tracker type, choices=[botsort.yaml, bytetrack.yaml]

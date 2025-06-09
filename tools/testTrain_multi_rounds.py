@@ -101,6 +101,8 @@ if __name__ == '__main__':
 
                 if "acmix" in params_directly["model"]:
                     params_directly["batch"] = 8
+                if "ELA" in params_directly["model"]:
+                    params_directly["batch"] = 32
 
                 # 调用主函数
                 main(params_directly)

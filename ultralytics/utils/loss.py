@@ -9,7 +9,7 @@ from ultralytics.utils.ops import crop_mask, xywh2xyxy, xyxy2xywh
 from ultralytics.utils.tal import RotatedTaskAlignedAssigner, TaskAlignedAssigner, dist2bbox, dist2rbox, make_anchors
 from ultralytics.utils.torch_utils import autocast
 
-from .metrics import bbox_iou, probiou
+from .metrics import bbox_iou, probiou, wasserstein_loss
 from .tal import bbox2dist
 
 
@@ -91,7 +91,7 @@ class DFLoss(nn.Module):
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses during training."""
 
-    def __init__(self, reg_max=16, imgsz=640, iou_type='Ciou', Inner_iou=False, Focal=False, Focaler=False, epoch=300, alpha=1):
+    def __init__(self, reg_max=16, imgsz=640, iou_type='Ciou', Inner_iou=False, Focal=False, Focaler=False, epoch=300, alpha=1, nwd_loss=False, nwdiou_ratio=0.5):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
@@ -102,6 +102,9 @@ class BboxLoss(nn.Module):
         self.Focaler = Focaler  # Focaler-IoU
         self.epoch = epoch  # Unified-IoU
         self.alpha = alpha  # AlphaIoU
+
+        self.nwd_loss = nwd_loss
+        self.nwdiou_ratio = nwdiou_ratio
 
     def forward(self, pred_dist, pred_bboxes, anchor_points, target_bboxes, target_scores, target_scores_sum, fg_mask):
         """IoU loss."""
@@ -162,6 +165,12 @@ class BboxLoss(nn.Module):
 
             loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
+        if self.nwd_loss:
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+            nwd = wasserstein_loss(pred_bboxes[fg_mask], target_bboxes[fg_mask])
+            nwd_loss = ((1.0 - nwd) * weight).sum() / target_scores_sum
+            loss_iou = self.nwdiou_ratio * loss_iou + (1 - self.nwdiou_ratio) * nwd_loss
+
         # DFL loss
         if self.dfl_loss:
             target_ltrb = bbox2dist(anchor_points, target_bboxes, self.dfl_loss.reg_max - 1)
@@ -171,8 +180,6 @@ class BboxLoss(nn.Module):
             loss_dfl = torch.tensor(0.0).to(pred_dist.device)
 
         return loss_iou, loss_dfl
-
-
 
 
 class RotatedBboxLoss(BboxLoss):
@@ -235,9 +242,15 @@ class v8DetectionLoss:
 
         self.use_dfl = m.reg_max > 1
 
+        self.nwd_loss = self.hyp.nwd_loss
+        self.nwdiou_ratio = self.hyp.nwdiou_ratio
+
         self.assigner = TaskAlignedAssigner(topk=tal_topk, num_classes=self.nc, alpha=0.5, beta=6.0)
         # self.bbox_loss = BboxLoss(m.reg_max).to(device)
-        self.bbox_loss = BboxLoss(m.reg_max, self.hyp.imgsz, self.hyp.iou_type, self.hyp.Inner_iou, self.hyp.Focal, self.hyp.Focaler, self.hyp.epochs, self.hyp.alpha).to(device)
+        self.bbox_loss = BboxLoss(m.reg_max, self.hyp.imgsz, self.hyp.iou_type,
+                                  self.hyp.Inner_iou, self.hyp.Focal, self.hyp.Focaler,
+                                  self.hyp.epochs, self.hyp.alpha,
+                                  self.nwd_loss, self.nwdiou_ratio).to(device)
 
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
