@@ -62,6 +62,8 @@ from .block import (
     Concat_BiFPN,
     AFEM,
     SimAM,
+    SimSPPF,
+    C3STR, SPPCSPC,
 )
 from .conv import (
     CBAM,
@@ -118,6 +120,7 @@ from .SAFM import SAFMNPP
 from .CMRF import CMRF
 from .MSAA import MSAA
 from .MogaNet import C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation
+from .FocalModulation import FocalModulation
 
 __all__ = (
     "Conv",
@@ -223,4 +226,7 @@ __all__ = (
     "SimAM",
     "MSAA",
     "C2f_MultiOGA", "ChannelAggregationFFN", "MultiOrderGatedAggregation",  # MogaNet modules
+    "FocalModulation",
+    "SimSPPF",
+    "C3STR", "SPPCSPC",
 )

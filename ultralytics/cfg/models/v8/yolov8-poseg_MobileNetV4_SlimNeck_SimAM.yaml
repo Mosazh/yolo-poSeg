@@ -1,0 +1,36 @@
+# Parameters
+nc: 80
+kpt_shape: [17, 3] # number of keypoints, number of dims (2 for x,y or 3 for x,y,visible)
+scales: # model compound scaling constants, i.e. 'model=yolov8n-pose.yaml' will call yolov8-pose.yaml with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024]
+  s: [0.33, 0.50, 1024]
+  m: [0.67, 0.75, 768]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.25, 512]
+
+# YOLOv8.0n backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, mobilenetv4_conv_large, []]  # 0-P1/2
+  - [-1, 1, SPPF, [1024, 5]]  # 5
+  - [-1, 1, SimAM, [1024]]  # 10
+
+# YOLOv8.0n head
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] #7
+  - [[-1, 3], 1, Concat, [1]]  # cat backbone P4 8
+  - [-1, 3, VoVGSCSP, [512]] # 9
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 10
+  - [[-1, 2], 1, Concat, [1]]  # cat backbone P3 11
+  - [-1, 3, VoVGSCSP, [256]]  # 12 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 13
+  - [[-1, 8], 1, Concat, [1]]  # cat head P4 14
+  - [-1, 3, VoVGSCSP, [512]]  # 15 (P4/16-medium)
+  - [-1, 1, Conv, [512, 3, 2]] #16
+  - [[-1, 5], 1, Concat, [1]]  # cat head P5 17
+  - [-1, 3, VoVGSCSP, [1024]]  # 18 (P5/32-large)
+
+  - [[12, 15, 18], 1, PoSeg, [nc, 32, 256, kpt_shape]]  # Detect(P3, P4, P5)

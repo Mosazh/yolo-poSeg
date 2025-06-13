@@ -92,6 +92,9 @@ from ultralytics.nn.modules import (
     SimAM,
     MSAA,
     C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation,
+    FocalModulation,
+    SimSPPF,
+    C3STR, SPPCSPC,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1137,6 +1140,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             SAFMNPP,
             CMRF,
             C2f_MultiOGA,
+            SimSPPF,
+            FocalModulation,
+            C3STR,
+            SPPCSPC,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1160,6 +1167,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ALSS,
             CMRF,
             C2f_MultiOGA,
+            C3STR,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
@@ -1182,8 +1190,10 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             if m is C2fAttn:  # set 1) embed channels and 2) num heads
                 args[1] = make_divisible(min(args[1], max_channels // 2) * width, 8)
                 args[2] = int(max(round(min(args[2], max_channels // 2 // 32)) * width, 1) if args[2] > 1 else args[2])
-
-            args = [c1, c2, *args[1:]]
+            if m is FocalModulation: # custom module
+                args = [c1, *args]
+            else:
+                args = [c1, c2, *args[1:]]
             if m in repeat_modules:
                 args.insert(2, n)  # number of repeats
                 n = 1

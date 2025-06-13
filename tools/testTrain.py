@@ -50,22 +50,22 @@ def main(model="yolov8-poseg.yaml",
 
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg.yaml"
+    MODEL = "yolov8-poseg_ELA.yaml"
     DATA = "MKSD.yaml"
-    EPOCHS = 1
+    EPOCHS = 300
     IMG_SIZE = 640
-    BATCH = 4
+    BATCH = 16
     MULTI_SCALE = True
     DEGREES = 180
     BOX_LW = 30         # loss weight of box is 30,
-    SCALE = 1.0
-    SHEAL = 1           # Shears the image by a specified degree, mimicking the effect of objects being viewed from different angles.
+    SCALE = 0.5
+    SHEAL = 0.5           # Shears the image by a specified degree, mimicking the effect of objects being viewed from different angles.
     FLIPUD = 1
     FLIPLR = 1
-    CUTMIX = 1
+    CUTMIX = 0.5
     MIXUP = 0
-    IOU_TYPE = "Ciou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
-    NWD_LOSS = True
+    IOU_TYPE = "Siou" # Ciou, Giou, Diou, Siou, Eiou, Wise-iou, MPDiou, Shape-iou, Powerful-iou, Unified-iou
+    NWD_LOSS = False
     INNER_IOU = False
     FOCAL = False
     FOCALER = False
