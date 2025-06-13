@@ -71,9 +71,9 @@ if __name__ == '__main__':
     params_directly = {
         'model': "yolov8-poseg.yaml",
         'data': "MKSD.yaml",
-        'epochs': 1,
+        'epochs': 300,
         'imgsz': 640,
-        'batch': 64,
+        'batch': 16,
         'multi_scale': True,
         'degrees': 180,
         'box_lw': 30,
@@ -99,10 +99,13 @@ if __name__ == '__main__':
                 dirname = params_directly["model"].split('.')[0] + '_' + params_directly['iouType']
                 params_directly["name"] = dirname
 
-                if "acmix" in params_directly["model"]:
-                    params_directly["batch"] = 8
-                if "ELA" in params_directly["model"]:
-                    params_directly["batch"] = 32
+                if params_directly['batch'] > 32:
+                    if "acmix" in params_directly["model"]:
+                        params_directly["batch"] = 8
+                    if "ELA" in params_directly["model"]:
+                        params_directly["batch"] = 32
+                    if "MobileNetV4" in params_directly["model"]:
+                        params_directly["batch"] = 16
 
                 # 调用主函数
                 main(params_directly)
