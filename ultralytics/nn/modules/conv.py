@@ -651,14 +651,6 @@ except ImportError as e:
     print(e)
     pass
 
-def autopad(k, p=None, d=1):  # kernel, padding, dilation
-    """Pad to 'same' shape outputs."""
-    if d > 1:
-        k = d * (k - 1) + 1 if isinstance(k, int) else [d * (x - 1) + 1 for x in k]  # actual kernel-size
-    if p is None:
-        p = k // 2 if isinstance(k, int) else [x // 2 for x in k]  # auto-pad
-    return p
-
 class DCN_v4(nn.Module):
     default_act = nn.SiLU()
 
@@ -808,10 +800,10 @@ class GSBottleneck(nn.Module):
         return self.conv_lighting(x) + self.shortcut(x)
 
 
-class DWConv(Conv):
-    # Depth-wise convolution class
-    def __init__(self, c1, c2, k=1, s=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
-        super().__init__(c1, c2, k, s, g=math.gcd(c1, c2), act=act)
+# class DWConv(Conv):
+#     # Depth-wise convolution class
+#     def __init__(self, c1, c2, k=1, s=1, act=True):  # ch_in, ch_out, kernel, stride, padding, groups
+#         super().__init__(c1, c2, k, s, g=math.gcd(c1, c2), act=act)
 
 class VoVGSCSP(nn.Module):
     # VoVGSCSP module with GSBottleneck
@@ -833,7 +825,6 @@ class VoVGSCSP(nn.Module):
         y = self.cv2(x)
         return self.cv3(torch.cat((y, x1), dim=1))
 
-
 class VoVGSCSPC(VoVGSCSP):
     # cheap VoVGSCSP module with GSBottleneck
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
@@ -841,3 +832,60 @@ class VoVGSCSPC(VoVGSCSP):
         c_ = int(c2 * 0.5)  # hidden channels
         self.gsb = GSBottleneckC(c_, c_, 1, 1)
 
+class GSBottleneckC(GSBottleneck):
+    # cheap GS Bottleneck https://github.com/AlanLi1997/slim-neck-by-gsconv
+    def __init__(self, c1, c2, k=3, s=1):
+        super().__init__(c1, c2, k, s)
+        self.shortcut = DWConv(c1, c2, 3, 1, act=False)
+
+"""PConv"""
+# https://github.com/JierunChen/FasterNet
+
+# class PConv(nn.Module):
+#     def __init__(self, c1, c2, n_div=4, forward='split_cat'):
+#         super().__init__()
+#         self.dim_conv3 = c1 // n_div
+#         self.dim_untouched = c1 - self.dim_conv3
+#         self.partial_conv3 = nn.Conv2d(self.dim_conv3, self.dim_conv3, 3, 1, 1, bias=False)
+#         self.conv = Conv(c1, c2, k=1)
+
+#         if forward == 'slicing':
+#             self.forward = self.forward_slicing
+#         elif forward == 'split_cat':
+#             self.forward = self.forward_split_cat
+#         else:
+#             raise NotImplementedError
+
+#     def forward_slicing(self, x):
+#         # only for inference
+#         x = x.clone()   # !!! Keep the original input intact for the residual connection later
+#         x[:, :self.dim_conv3, :, :] = self.partial_conv3(x[:, :self.dim_conv3, :, :])
+#         x = self.conv(x)
+#         return x
+
+#     def forward_split_cat(self, x):
+#         # for training/inference
+#         x1, x2 = torch.split(x, [self.dim_conv3, self.dim_untouched], dim=1)
+#         x1 = self.partial_conv3(x1)
+#         x = torch.cat((x1, x2), 1)
+#         x = self.conv(x)
+#         return x
+class PConv(nn.Module):
+    ''' Pinwheel-shaped Convolution using the Asymmetric Padding method. '''
+
+    def __init__(self, c1, c2, k, s):
+        super().__init__()
+
+        # self.k = k
+        p = [(k, 0, 1, 0), (0, k, 0, 1), (0, 1, k, 0), (1, 0, 0, k)]
+        self.pad = [nn.ZeroPad2d(padding=(p[g])) for g in range(4)]
+        self.cw = Conv(c1, c2 // 4, (1, k), s=s, p=0)
+        self.ch = Conv(c1, c2 // 4, (k, 1), s=s, p=0)
+        self.cat = Conv(c2, c2, 2, s=1, p=0)
+
+    def forward(self, x):
+        yw0 = self.cw(self.pad[0](x))
+        yw1 = self.cw(self.pad[1](x))
+        yh0 = self.ch(self.pad[2](x))
+        yh1 = self.ch(self.pad[3](x))
+        return self.cat(torch.cat([yw0, yw1, yh0, yh1], dim=1))

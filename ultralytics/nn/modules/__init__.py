@@ -64,6 +64,7 @@ from .block import (
     SimAM,
     SimSPPF,
     C3STR, SPPCSPC,
+    ASPP, RFB, LightASPP,
 )
 from .conv import (
     CBAM,
@@ -89,6 +90,7 @@ from .conv import (
     ELA,
     SPD,
     VoVGSCSP, VoVGSCSPC, GSConv,
+    PConv,
 
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
@@ -229,4 +231,6 @@ __all__ = (
     "FocalModulation",
     "SimSPPF",
     "C3STR", "SPPCSPC",
+    "PConv",
+    "ASPP", "RFB", "LightASPP",
 )

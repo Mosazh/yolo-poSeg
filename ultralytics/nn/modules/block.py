@@ -1413,7 +1413,6 @@ class DCNv4_C2f(nn.Module):
         self.m = nn.ModuleList(DBottleneck(self.c, self.c, shortcut, g, k=(3, 3), e=1.0, de=1.1, gc=gc) for _ in range(n))
         # self.m = nn.ModuleList(DBottleneck2(self.c, self.c, shortcut, g, k=(3, 3), e=1.5, gc=gc) for _ in range(n))
 
-
     def forward(self, x):
         """Forward pass through C2f layer."""
         y = list(self.cv1(x).chunk(2, 1))
@@ -1596,3 +1595,165 @@ class SPPCSPC(nn.Module):
         y1 = self.cv6(self.cv5(torch.cat([x1] + [m(x1) for m in self.m], 1)))
         y2 = self.cv2(x)
         return self.cv7(torch.cat((y1, y2), dim=1))
+
+# ------------Light-ASPP------------------------
+class LightASPP(nn.Module):
+    def __init__(self, in_channels, out_channels, rates=(6, 12, 18)):
+        super().__init__()
+        self.conv1x1 = LightConv(in_channels, out_channels, k=1, act=nn.SiLU())
+
+        self.aspp_convs = nn.ModuleList()
+        for rate in rates:
+            self.aspp_convs.append(
+                DWConv(in_channels, out_channels, k=3, s=1, d=rate, act=nn.SiLU())
+            )
+
+        self.global_avg_pool = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.SiLU()
+        )
+
+        self.concat_conv = LightConv(out_channels * (2 + len(rates)), out_channels, k=1, act=nn.SiLU())
+
+    def forward(self, x):
+        h, w = x.shape[2:]
+
+        x1 = self.conv1x1(x)
+        aspp_features = [aspp_conv(x) for aspp_conv in self.aspp_convs]
+
+        x_gap = self.global_avg_pool(x)
+        x_gap = F.interpolate(x_gap, size=(h, w), mode='bilinear', align_corners=False)
+
+        features_to_concat = [x1] + aspp_features + [x_gap]
+        x_cat = torch.cat(features_to_concat, dim=1)
+
+        return self.concat_conv(x_cat)
+
+# ------------ASPP------------------------
+class ASPP(nn.Module):
+    """
+    Atrous Spatial Pyramid Pooling (ASPP) module, compatible with the provided Conv class and autopad function.
+    It uses 1x1 convolution, multiple 3x3 dilated convolutions with different rates,
+    and a global average pooling branch.
+    """
+    def __init__(self, in_channels, out_channels, rates=(6, 12, 18)):
+        super().__init__()
+        # 1x1 卷积分支
+        self.conv1x1 = Conv(in_channels, out_channels, k=1, s=1)
+
+        # 多个不同膨胀率的 3x3 空洞卷积分支
+        self.aspp_convs = nn.ModuleList()
+        for rate in rates:
+            # 直接使用你的 Conv 模块，并传入 dilation=rate。
+            # autopad 函数会根据 kernel_size 和 dilation rate 自动计算 padding
+            self.aspp_convs.append(
+                Conv(in_channels, out_channels, k=3, s=1, d=rate) # d=rate 表示 dilation rate
+            )
+
+        # 全局平均池化分支
+        # 接使用 nn.Conv2d + nn.SiLU，跳过 BatchNorm2d 对 1x1 输入的限制
+        self.global_avg_pool = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1), # 全局平均池化到 1x1
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=True), # 直接使用 nn.Conv2d
+            nn.SiLU() # 加上你的默认激活函数
+        )
+
+        # 最终的 1x1 卷积，用于融合所有分支的输出
+        # 总通道数 = 1x1 conv + len(rates) * 3x3 dilated convs + global_avg_pool
+        # 每个分支的输出通道都是 out_channels
+        self.concat_conv = Conv(out_channels * (2 + len(rates)), out_channels, k=1, s=1)
+
+    def forward(self, x):
+        h, w = x.shape[2:] # 获取输入特征图的 H, W
+
+        # 1x1 卷积分支
+        x1 = self.conv1x1(x)
+
+        # 空洞卷积分支
+        aspp_features = [aspp_conv(x) for aspp_conv in self.aspp_convs]
+
+        # 全局平均池化分支
+        x_gap = self.global_avg_pool(x)
+        # 上采样回原始 H,W，使用双线性插值
+        x_gap = F.interpolate(x_gap, size=(h, w), mode='bilinear', align_corners=False)
+
+        # 拼接所有分支的特征：1x1 conv output, all dilated conv outputs, global avg pool output
+        features_to_concat = [x1] + aspp_features + [x_gap]
+        x_cat = torch.cat(features_to_concat, dim=1)
+
+        # 最终的融合卷积
+        return self.concat_conv(x_cat)
+
+
+class RFB(nn.Module):
+    """
+    Receptive Field Block (RFB) designed to natively replace SPPF.
+
+    RFB aims to enhance feature representation by mimicking the parallel processing
+    of different receptive field sizes in the human visual cortex,
+    using parallel dilated convolutions.
+    """
+
+    def __init__(self, c1, c2, k=(3, 5, 7), d=(1, 2, 3), groups=1):
+        """
+        Initializes the RFB layer.
+
+        Args:
+            c1 (int): Input channels.
+            c2 (int): Output channels.
+            k (tuple): Tuple of kernel sizes for the parallel branches.
+                       We use 3x3 convolutions with different dilations, so k=3 is often sufficient.
+                       However, here we align with typical RFB style by suggesting multiple kernel sizes,
+                       but practically implement using 3x3 with different dilations.
+            d (tuple): Tuple of dilation rates for the parallel branches.
+                       Controls the receptive field size without increasing kernel size.
+            groups (int): Number of blocked connections from input channels to output channels.
+        """
+        super().__init__()
+        assert len(k) == len(d), "Kernel sizes and dilation rates must have the same number of elements"
+
+        c_ = c1 // 4  # hidden channels for each branch, usually c1 // 8 or c1 // 4 in RFB designs
+
+        # 1x1 Convolution to reduce channels initially (for a standard RFB-like entry)
+        self.cv1_1x1 = Conv(c1, c_, 1, 1)
+
+        # Parallel branches with 3x3 dilated convolutions
+        self.branches = nn.ModuleList()
+        # For simplicity and to match RFB principles, we'll use 3x3 with varied dilations
+        # A common RFB design might use 3x3 for small, 3x3 dilated for medium, 5x5 for large etc.
+        # Here we simplify: all are 3x3, but with different dilations,
+        # effectively creating different receptive fields.
+        for i in range(len(d)):
+            # Each branch has a 1x1 conv then a dilated conv.
+            # Padding is adjusted for dilation to maintain output size
+            p_branch = (k[i] // 2) * d[i] # Calculate padding for dilated conv
+            self.branches.append(
+                nn.Sequential(
+                    Conv(c_, c_, 1, 1),  # 1x1 to potentially adjust channels within branch
+                    Conv(c_, c_, k[i], 1, p_branch, groups, d[i]) # Dilated conv
+                )
+            )
+
+        # Final 1x1 convolution to combine outputs of all branches + initial 1x1 output
+        # Output channels will be c_ * (1 + len(branches)) before final conv2
+        # The total output channels from concatenation will be c_ * (1 + len(branches))
+        # So the final Conv layer needs this as input
+        self.cv2_final = Conv(c_ * (1 + len(self.branches)), c2, 1, 1)
+
+    def forward(self, x):
+        """Forward pass through the RFB block."""
+        x_reduced = self.cv1_1x1(x) # Initial 1x1 reduction
+
+        # Process through parallel branches
+        branch_outputs = [x_reduced] # Include the initial reduced feature map
+
+        for branch in self.branches:
+            branch_outputs.append(branch(x_reduced))
+
+        # Concatenate all branch outputs
+        # torch.cat(branch_outputs, 1) will concatenate along the channel dimension
+        concatenated_features = torch.cat(branch_outputs, 1)
+
+        # Final 1x1 convolution to adjust to desired output channels
+        return self.cv2_final(concatenated_features)
