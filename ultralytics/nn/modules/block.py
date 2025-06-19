@@ -1685,7 +1685,7 @@ class ASPP(nn.Module):
         # 最终的融合卷积
         return self.concat_conv(x_cat)
 
-
+# ------------RFB------------------------
 class RFB(nn.Module):
     """
     Receptive Field Block (RFB) designed to natively replace SPPF.
@@ -1757,3 +1757,179 @@ class RFB(nn.Module):
 
         # Final 1x1 convolution to adjust to desired output channels
         return self.cv2_final(concatenated_features)
+
+# -------------------BiFPN------------------------
+# BiFPN 中的加权融合单元
+class BiFPN_Add(nn.Module):
+    def __init__(self, num_inputs, epsilon=0.0001):
+        """
+        初始化 BiFPN 的加权融合组件。
+        参数：
+            num_inputs (int): 要融合的输入特征图数量。
+            epsilon (float): 一个防止除以零的小值。
+        """
+        super(BiFPN_Add, self).__init__()
+        self.epsilon = epsilon
+        # 初始化可学习的权重，每个输入一个
+        self.w = nn.Parameter(torch.ones(num_inputs, dtype=torch.float32), requires_grad=True)
+        self.relu = nn.ReLU() # 使用 ReLU 确保权重在归一化前为正
+
+    def forward(self, inputs):
+        """
+        对输入特征图进行加权融合。
+        参数：
+            inputs (list of torch.Tensor): 要融合的特征图列表。
+        返回：
+            torch.Tensor: 融合后的特征图。
+        """
+        # 对权重应用 ReLU 并使用类似 Softmax 的方法进行归一化
+        # 这确保权重为正且总和近似为 1，以实现加权平均
+        w = self.relu(self.w)
+        w = w / (torch.sum(w, dim=0) + self.epsilon)
+
+        # 执行加权求和
+        output = inputs[0] * w[0]
+        for i in range(1, len(inputs)):
+            output = output + inputs[i] * w[i]
+        return output
+
+# BiFPN 层（一个融合阶段）
+class BiFPNLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        """
+        初始化单个 BiFPN 融合层。
+        参数：
+            in_channels (int): 所有输入特征图的通道数。
+                               （假设经过初始调整后，此层的所有输入都具有相同的通道数）。
+            out_channels (int): 融合后特征图的输出通道数。
+        """
+        super(BiFPNLayer, self).__init__()
+
+        # --- 自顶向下路径 ---
+        # P5_in 在上采样和融合之前的卷积
+        self.p5_td_conv = Conv(in_channels, out_channels, 3, 1)
+        # P4_td 的融合：P4_in + 上采样(P5_td)
+        self.p4_td_fusion = BiFPN_Add(num_inputs=2)
+        self.p4_td_conv = Conv(out_channels, out_channels, 3, 1) # P4_td 融合后的卷积
+        # P3_td 的融合：P3_in + 上采样(P4_td)
+        self.p3_td_fusion = BiFPN_Add(num_inputs=2)
+        self.p3_td_conv = Conv(out_channels, out_channels, 3, 1) # P3_td 融合后的卷积
+
+        # --- 自底向上路径 ---
+        # P4_out 的融合：P4_in + P4_td + 下采样(P3_out)
+        self.p4_bu_conv = Conv(out_channels, out_channels, 3, 1) # P3_out 下采样之前的卷积
+        self.p4_out_fusion = BiFPN_Add(num_inputs=3)
+        self.p4_out_conv = Conv(out_channels, out_channels, 3, 1) # P4_out 融合后的卷积
+
+        # P5_out 的融合：P5_in + P5_td + 下采样(P4_out)
+        self.p5_bu_conv = Conv(out_channels, out_channels, 3, 1) # P4_out 下采样之前的卷积
+        self.p5_out_fusion = BiFPN_Add(num_inputs=2)
+        self.p5_out_conv = Conv(out_channels, out_channels, 3, 1) # P5_out 融合后的卷积
+
+    def forward(self, inputs):
+        """
+        执行单个 BiFPN 层融合。
+        参数：
+            inputs (list of torch.Tensor): 包含 [P3_in, P4_in, P5_in] 的列表
+                                          （来自骨干网络或前一个 BiFPN 层的特征）。
+        返回：
+            list of torch.Tensor: 融合后的 [P3_out, P4_out, P5_out] 列表。
+        """
+        p3_in, p4_in, p5_in = inputs # 假设输入已处理为 `out_channels`
+
+        # 自顶向下路径
+        # P5_td: 简单地来自 P5_in（如果需要，在该层之前调整通道）
+        # 使用卷积处理 P5_td 以保持一致性并可能细化特征
+        p5_td = self.p5_td_conv(p5_in)
+
+        # P4_td = P4_in + 上采样(P5_td)
+        p4_td = self.p4_td_fusion([p4_in, F.interpolate(p5_td, scale_factor=2, mode='nearest')])
+        p4_td = self.p4_td_conv(p4_td)
+
+        # P3_td = P3_in + 上采样(P4_td)
+        p3_td = self.p3_td_fusion([p3_in, F.interpolate(p4_td, scale_factor=2, mode='nearest')])
+        p3_td = self.p3_td_conv(p3_td) # 融合后应用卷积
+
+        # 自底向上路径
+        # P3_out 直接来自 P3_td
+        p3_out = p3_td # 来自自顶向下路径的第一个输出尺度
+
+        # P4_out = P4_in + P4_td + 下采样(P3_out)
+        # 注意：YOLOv8 通常在 Neck 中使用 MaxPool2d 进行下采样
+        p4_out = self.p4_out_fusion([p4_in, p4_td, self.p4_bu_conv(F.max_pool2d(p3_out, 2))])
+        p4_out = self.p4_out_conv(p4_out)
+
+        # P5_out = P5_in + P5_td + 下采样(P4_out)
+        p5_out = self.p5_out_fusion([p5_in, p5_td, self.p5_bu_conv(F.max_pool2d(p4_out, 2))])
+        p5_out = self.p5_out_conv(p5_out)
+
+        return [p3_out, p4_out, p5_out]
+
+# 完整的 BiFPN Neck（替换 YOLOv8 的 PANet 部分）
+class BiFPNNeck(nn.Module):
+    def __init__(self, in_channels_list, out_channels=256, num_layers=3):
+        """
+        初始化完整的 BiFPN Neck 模块。
+        参数：
+            in_channels_list (list): 来自骨干网络的输入通道数列表（例如，[128, 256, 512]）。
+            out_channels (int): 所有融合特征图的目标输出通道数。
+            num_layers (int): 要堆叠的 BiFPNLayer 块的数量。
+        """
+        super(BiFPNNeck, self).__init__()
+        self.num_layers = num_layers
+        self.out_channels = out_channels
+
+        # 调整骨干网络输入的通道数，使其统一为 `out_channels`
+        self.input_adapters = nn.ModuleList()
+        for c in in_channels_list:
+            self.input_adapters.append(Conv(c, out_channels, 1, 1))
+
+        # 堆叠多个 BiFPN 层
+        self.bifpn_layers = nn.ModuleList()
+        for _ in range(num_layers):
+            # 每个 BiFPNLayer 期望的输入已经具有 `out_channels`
+            self.bifpn_layers.append(BiFPNLayer(out_channels, out_channels))
+
+    def forward(self, inputs):
+        """
+        执行 BiFPN Neck 的前向传播。
+        参数：
+            inputs (list of torch.Tensor): 来自骨干网络的特征图列表，
+                                          按从大（P3）到小（P5）的顺序排列。
+        返回：
+            list of torch.Tensor: 融合后的特征图列表 [P3_out, P4_out, P5_out]。
+        """
+        # 首先，调整输入通道到 `out_channels`
+        x = [adapter(input_tensor) for adapter, input_tensor in zip(self.input_adapters, inputs)]
+
+        # 应用堆叠的 BiFPN 层
+        for layer in self.bifpn_layers:
+            x = layer(x) # x 在每层之后都是 [P3_out, P4_out, P5_out]
+
+        return x # 返回最终融合的特征图
+
+# --------------------FDConvBlock------------------------
+from .FDConv_initialversion import FDConv
+class FDConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=None, groups=1):
+        super().__init__()
+        self.conv = FDConv(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=(kernel_size, kernel_size),
+            stride=stride,
+            padding=autopad(kernel_size, padding),  # 使用 ultralytics.utils.autopad
+            groups=groups,
+            bias=False,
+            use_fdconv_if_c_gt=16,
+            use_fdconv_if_k_in=[3],
+            reduction=0.0625,
+            kernel_num=4
+        )
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.act = nn.SiLU()
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+        return self.conv(x)
+

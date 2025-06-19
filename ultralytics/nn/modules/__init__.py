@@ -65,6 +65,7 @@ from .block import (
     SimSPPF,
     C3STR, SPPCSPC,
     ASPP, RFB, LightASPP,
+    FDConvBlock,
 )
 from .conv import (
     CBAM,
@@ -90,7 +91,7 @@ from .conv import (
     ELA,
     SPD,
     VoVGSCSP, VoVGSCSPC, GSConv,
-    PConv,
+    PConv, PSCConv,
 
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
@@ -123,6 +124,7 @@ from .CMRF import CMRF
 from .MSAA import MSAA
 from .MogaNet import C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation
 from .FocalModulation import FocalModulation
+from .FDConv_initialversion import FDConv
 
 __all__ = (
     "Conv",
@@ -231,6 +233,8 @@ __all__ = (
     "FocalModulation",
     "SimSPPF",
     "C3STR", "SPPCSPC",
-    "PConv",
+    "PConv", "PSCConv",
     "ASPP", "RFB", "LightASPP",
+    "FDConv",  # FDConv_initialversion
+    "FDConvBlock",
 )

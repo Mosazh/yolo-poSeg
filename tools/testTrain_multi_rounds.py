@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import logging
 import argparse
 from ultralytics import YOLO
@@ -61,6 +62,8 @@ if __name__ == '__main__':
     log_file_path = "training_results.log"
     logging.basicConfig(filename=log_file_path, level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    logging.exception(f"Start training at {current_time}")
     # 直接在代码中传递参数
     try:
         with open("tools/train_params.json", "r") as f:

@@ -889,3 +889,49 @@ class PConv(nn.Module):
         yh0 = self.ch(self.pad[2](x))
         yh1 = self.ch(self.pad[3](x))
         return self.cat(torch.cat([yw0, yw1, yh0, yh1], dim=1))
+
+# =====================================================================
+# PSCConv: PConv + Attention Mechanism
+# =====================================================================
+from .UniRepLKNet import SEBlock
+
+class PSCConv(nn.Module):
+    """
+    Pinwheel-shaped Convolution with Squeeze-and-Excitation Channel Attention
+    and optional Spatial Attention, using provided SEBlock and SpatialAttention.
+    """
+    def __init__(self, c1, c2, k, s, se_internal_neurons=None, use_spatial_attention=False, spatial_kernel_size=7):
+        """
+        Initializes PSCConv.
+        Args:
+            c1 (int): Input channels for PConv.
+            c2 (int): Output channels for PConv (and attention modules).
+            k (int): Kernel size for PConv.
+            s (int): Stride for PConv.
+            se_internal_neurons (int, optional): Number of internal neurons for SEBlock.
+                                                 If None, a default (c2 // 16) is used.
+            use_spatial_attention (bool): Whether to include SpatialAttention.
+            spatial_kernel_size (int): Kernel size for SpatialAttention (3 or 7).
+        """
+        super().__init__()
+
+        self.pconv = PConv(c1, c2, k, s)
+
+        # Determine internal_neurons for SEBlock
+        if se_internal_neurons is None:
+            se_internal_neurons = c2 // 16 # Common reduction ratio
+
+        self.channel_attention = SEBlock(input_channels=c2, internal_neurons=se_internal_neurons)
+
+        self.use_spatial_attention = use_spatial_attention
+        if self.use_spatial_attention:
+            self.spatial_attention = SpatialAttention(kernel_size=spatial_kernel_size)
+
+    def forward(self, x):
+        x = self.pconv(x) # 1. Apply PConv
+        x = self.channel_attention(x) # 2. Apply Channel Attention (SEBlock)
+
+        if self.use_spatial_attention:
+            x = self.spatial_attention(x) # 3. Optionally apply Spatial Attention
+
+        return x
