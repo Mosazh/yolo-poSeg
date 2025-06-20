@@ -1933,3 +1933,45 @@ class FDConvBlock(nn.Module):
         return self.act(self.bn(self.conv(x)))
         return self.conv(x)
 
+# --------------------ARConvBlock------------------------
+from .ARConv import ARConv
+
+# 👇 全局变量保存当前 epoch
+global_epoch = 0
+
+def set_epoch(epoch):
+    global global_epoch
+    global_epoch = epoch
+
+class ARConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, k=3, s=1, p=1, act=True):
+        super().__init__()
+        self.conv = ARConv(in_channels,
+                           out_channels,
+                           kernel_size=k,
+                           padding=p,
+                           stride=s,
+                           l_max=9,
+                           w_max=9,
+                           flag=False,
+                           modulation=True)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.act = nn.SiLU() if act else nn.Identity()
+
+    def scale_grads(self, scale=0.1):
+        self.conv.scale_grads(scale)
+
+    def forward(self, x):
+        # if current_epoch < 5:
+        #     print(f"[ARConv] Running at epoch {global_epoch}, input size: {x.shape}")
+        x = self.conv(x, global_epoch, hw_range=[1, 3])
+        # print(x.shape)
+
+        # 防止 BN 输入为 [1, C, 1, 1] 报错
+        if x.shape[-1] == 1 and x.shape[-2] == 1:
+            return self.act(x)
+        else:
+            return self.act(self.bn(x))
+
+            if isinstance(m, ARConvBlock):
+                m.scale_grads(scale=0.1)

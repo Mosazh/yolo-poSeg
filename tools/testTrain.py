@@ -50,9 +50,9 @@ def main(model="yolov8-poseg.yaml",
 
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_FDConv_2.yaml"
+    MODEL = "yolov8-poseg_ARConv.yaml"
     DATA = "MKSD.yaml"
-    EPOCHS = 1
+    EPOCHS = 2
     IMG_SIZE = 640
     BATCH = 4
     MULTI_SCALE = True

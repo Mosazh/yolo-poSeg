@@ -55,6 +55,7 @@ from ultralytics.utils.torch_utils import (
     unset_deterministic,
 )
 
+from ultralytics.nn.modules.block import set_epoch
 
 class BaseTrainer:
     """
@@ -342,6 +343,8 @@ class BaseTrainer:
         self.optimizer.zero_grad()  # zero any resumed gradients to ensure stability on train start
         while True:
             self.epoch = epoch
+            # global epoch variable for callbacks
+            set_epoch(epoch)  # ✅ 每轮训练前设置 epoch
             self.run_callbacks("on_train_epoch_start")
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")  # suppress 'Detected lr_scheduler.step() before optimizer.step()'
@@ -387,6 +390,11 @@ class BaseTrainer:
 
                 # Backward
                 self.scaler.scale(self.loss).backward()
+
+                # Grad adjustment for ARConv
+                for m in self.model.modules():
+                    if hasattr(m, "scale_grads"):
+                        m.scale_grads(scale=0.1)
 
                 # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
                 if ni - last_opt_step >= self.accumulate:

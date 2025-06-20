@@ -98,6 +98,7 @@ from ultralytics.nn.modules import (
     PConv, PSCConv,
     ASPP, RFB, LightASPP,
     FDConvBlock,
+    ARConvBlock,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1148,8 +1149,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             C3STR,
             SPPCSPC,
             ASPP, RFB, LightASPP,
-            PConv, PSCConv,
             FDConvBlock,
+            ARConvBlock,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1300,9 +1301,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [ch[f], c2]
         elif m is MultiOrderGatedAggregation:
             args = [ch[f]]
-        # elif m in {PConv, PSCConv}:
-        #     c2 = args[0]
-        #     args = [ch[f], *args]
+        elif m in {PConv, PSCConv}:
+            c2 = args[0]
+            args = [ch[f], *args]
         # elif m is FDConvBlock:
         #     c2 = args[0]
         #     args = [ch[f], c2, *args[1:]]

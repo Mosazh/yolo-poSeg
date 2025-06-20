@@ -66,6 +66,7 @@ from .block import (
     C3STR, SPPCSPC,
     ASPP, RFB, LightASPP,
     FDConvBlock,
+    ARConvBlock,
 )
 from .conv import (
     CBAM,
@@ -237,4 +238,5 @@ __all__ = (
     "ASPP", "RFB", "LightASPP",
     "FDConv",  # FDConv_initialversion
     "FDConvBlock",
+    "ARConvBlock",  # ARConv
 )
