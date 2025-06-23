@@ -12,6 +12,8 @@ def main(params):
         epochs=params.get('epochs', 1),
         imgsz=params.get('imgsz', 640),
         batch=params.get('batch', 16),
+        amp=params.get('amp', False),  # Automatic Mixed Precision
+        seed=params.get('seed', 0),
         multi_scale=params.get('multi_scale', False),
         degrees=params.get('degrees', 0),
         box=params.get('box_lw', 30),
@@ -36,6 +38,8 @@ def parse_arguments():
     parser.add_argument('--epochs', type=int, default=1, help='Training epochs')
     parser.add_argument('--imgsz', type=int, default=640, help='Input image size')
     parser.add_argument('--batch', type=int, default=16, help='Batch size')
+    parser.add_argument('--amp', action='store_true', help='Automatic Mixed Precision')
+    parser.add_argument('--seed', type=int, default=0, help='Sets the random seed for training, ensuring reproducibility of results across runs with the same configurations.')
     parser.add_argument('--multi-scale', action='store_true', help='Multi-scale training')
     parser.add_argument('--degrees', type=int, default=0, help='Random rotation degrees')
     parser.add_argument('--box_lw', type=float, default=30, help='Box loss weight')
@@ -77,6 +81,8 @@ if __name__ == '__main__':
         'epochs': 300,
         'imgsz': 640,
         'batch': 16,
+        'amp': False,          # False Automatic Mixed Precision
+        'seed': 0,
         'multi_scale': True,
         'degrees': 180,
         'box_lw': 30,
@@ -95,40 +101,42 @@ if __name__ == '__main__':
 
     for model in pfj["model"].values():
         for iouType in pfj["iouType"].values():
-            try:
-                # 构造参数
-                params_directly["model"] = f"{model}.yaml"
-                params_directly["iouType"] = iouType
-                dirname = params_directly["model"].split('.')[0] + '_' + params_directly['iouType']
-                params_directly["name"] = dirname
+            for seed in pfj["seed"].values():
+                try:
+                    # 构造参数
+                    params_directly["model"] = f"{model}.yaml"
+                    params_directly["iouType"] = iouType
+                    params_directly["seed"] = int(seed)
+                    dirname = params_directly["model"].split('.')[0] + '_' + params_directly['iouType']
+                    params_directly["name"] = dirname
 
-                if params_directly['batch'] > 32:
-                    if "acmix" in params_directly["model"]:
-                        params_directly["batch"] = 8
-                    if "ELA" in params_directly["model"]:
-                        params_directly["batch"] = 32
-                    if "MobileNetV4" in params_directly["model"]:
-                        params_directly["batch"] = 16
+                    if params_directly['batch'] > 32:
+                        if "acmix" in params_directly["model"]:
+                            params_directly["batch"] = 8
+                        if "ELA" in params_directly["model"]:
+                            params_directly["batch"] = 32
+                        if "MobileNetV4" in params_directly["model"]:
+                            params_directly["batch"] = 16
 
-                # 调用主函数
-                main(params_directly)
+                    # 调用主函数
+                    main(params_directly)
 
-                # 记录成功的日志
-                logging.info(json.dumps({
-                    'model': params_directly["model"],
-                    'iouType': params_directly["iouType"],
-                    'status': 'success'
-                }))
+                    # 记录成功的日志
+                    logging.info(json.dumps({
+                        'model': params_directly["model"],
+                        'iouType': params_directly["iouType"],
+                        'status': 'success'
+                    }))
 
-            except Exception as e:
-                # 打印并记录错误信息
-                error_message = f"Error occurred with model={model}, iouType={iouType}: {str(e)}"
-                print(error_message)
+                except Exception as e:
+                    # 打印并记录错误信息
+                    error_message = f"Error occurred with model={model}, iouType={iouType}: {str(e)}"
+                    print(error_message)
 
-                # 记录失败的日志
-                logging.error(json.dumps({
-                    'model': f"{model}.yaml",
-                    'iouType': iouType,
-                    'status': 'failed',
-                    'error': str(e)
-                }))
+                    # 记录失败的日志
+                    logging.error(json.dumps({
+                        'model': f"{model}.yaml",
+                        'iouType': iouType,
+                        'status': 'failed',
+                        'error': str(e)
+                    }))

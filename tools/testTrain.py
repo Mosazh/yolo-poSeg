@@ -5,6 +5,7 @@ def main(model="yolov8-poseg.yaml",
          epochs=2,
          imgsz=640,
          batch=16,
+         amp=False,          # False Automatic Mixed Precision
          multi_scale=True,
          degrees=180,
          box_lw=30,                        # loss weight of box is 30,
@@ -31,6 +32,7 @@ def main(model="yolov8-poseg.yaml",
         epochs=epochs,
         imgsz=imgsz,
         batch=batch,
+        amp=amp,  # False Automatic Mixed Precision
         multi_scale=multi_scale,
         degrees=degrees,
         box=box_lw,
@@ -50,11 +52,12 @@ def main(model="yolov8-poseg.yaml",
 
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_ARConv.yaml"
+    MODEL = "yolov8-poseg_C2f-ContMix.yaml"
     DATA = "MKSD.yaml"
-    EPOCHS = 2
+    EPOCHS = 1
     IMG_SIZE = 640
     BATCH = 4
+    AMP = False  # Automatic Mixed Precision, set to False for training with full precision
     MULTI_SCALE = True
     DEGREES = 180
     BOX_LW = 30         # loss weight of box is 30,
@@ -77,6 +80,7 @@ if __name__ == '__main__':
          epochs=EPOCHS,
          imgsz=IMG_SIZE,
          batch=BATCH,
+         amp=AMP,  # False Automatic Mixed Precision
          multi_scale=MULTI_SCALE,
          degrees=DEGREES,
          box_lw=BOX_LW,

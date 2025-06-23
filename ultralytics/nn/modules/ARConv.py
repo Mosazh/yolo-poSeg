@@ -47,7 +47,7 @@ class ARConv(nn.Module):
             nn.BatchNorm2d(inc),
             nn.LeakyReLU(inplace=False),
             nn.Dropout2d(0),
-            nn.Conv2d(inc, inc, kernel_size=3, padding=1, stride=stride),
+            nn.Conv2d(inc, inc, kernel_size=3, padding=1, stride=2),
             nn.BatchNorm2d(inc),
             nn.LeakyReLU(inplace=False),
         )

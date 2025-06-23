@@ -67,6 +67,7 @@ from .block import (
     ASPP, RFB, LightASPP,
     FDConvBlock,
     ARConvBlock,
+    C2f_ContMix,
 )
 from .conv import (
     CBAM,
@@ -126,6 +127,7 @@ from .MSAA import MSAA
 from .MogaNet import C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggregation
 from .FocalModulation import FocalModulation
 from .FDConv_initialversion import FDConv
+from .contmix import ContMixBlock
 
 __all__ = (
     "Conv",
@@ -239,4 +241,6 @@ __all__ = (
     "FDConv",  # FDConv_initialversion
     "FDConvBlock",
     "ARConvBlock",  # ARConv
+    "ContMixBlock",
+    "C2f_ContMix",
 )

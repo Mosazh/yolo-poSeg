@@ -1911,7 +1911,7 @@ class BiFPNNeck(nn.Module):
 # --------------------FDConvBlock------------------------
 from .FDConv_initialversion import FDConv
 class FDConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=None, groups=1):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=2, padding=None, groups=1):
         super().__init__()
         self.conv = FDConv(
             in_channels=in_channels,
@@ -1930,8 +1930,8 @@ class FDConvBlock(nn.Module):
         self.act = nn.SiLU()
 
     def forward(self, x):
+        print(f"input FDConvBlock shape:{x.shape}")
         return self.act(self.bn(self.conv(x)))
-        return self.conv(x)
 
 # --------------------ARConvBlock------------------------
 from .ARConv import ARConv
@@ -1944,15 +1944,15 @@ def set_epoch(epoch):
     global_epoch = epoch
 
 class ARConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, k=3, s=1, p=1, act=True):
+    def __init__(self, in_channels, out_channels, k=3, s=1, p=1, l_max=9, w_max=9, act=True):
         super().__init__()
         self.conv = ARConv(in_channels,
                            out_channels,
                            kernel_size=k,
                            padding=p,
                            stride=s,
-                           l_max=9,
-                           w_max=9,
+                           l_max=l_max,
+                           w_max=w_max,
                            flag=False,
                            modulation=True)
         self.bn = nn.BatchNorm2d(out_channels)
@@ -1975,3 +1975,92 @@ class ARConvBlock(nn.Module):
 
             if isinstance(m, ARConvBlock):
                 m.scale_grads(scale=0.1)
+
+"""C2f_ContMix"""
+from .contmix import ContMixBlock, LayerNorm2d
+
+class ContMixBottleneck(nn.Module):
+    """Bottleneck with ContMixBlock instead of standard conv layers."""
+    def __init__(self, c1, c2, shortcut=True, e=1.0,
+                 kernel_size=7, smk_size=5, num_heads=2,
+                 mlp_ratio=4, res_scale=False, ls_init_value=1e-5,
+                 drop_path=0.0, norm_layer=None, use_gemm=False,
+                 deploy=False, use_checkpoint=False):
+        super().__init__()
+        self.contmix = ContMixBlock(
+            dim=c1,  # 注意 ContMixBlock 输入输出通道相同
+            kernel_size=kernel_size,
+            smk_size=smk_size,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            res_scale=res_scale,
+            ls_init_value=ls_init_value,
+            drop_path=drop_path,
+            norm_layer=norm_layer or LayerNorm2d,
+            use_gemm=use_gemm,
+            deploy=deploy,
+            use_checkpoint=use_checkpoint,
+        )
+        self.match_channels = None
+        if c1 != c2:
+            # ContMixBlock 不改变通道数，若c1≠c2则需额外映射
+            self.match_channels = Conv(c1, c2, 1)
+        self.add = shortcut and c1 == c2
+
+    def forward(self, x):
+        out = self.contmix(x)
+        if self.match_channels is not None:
+            out = self.match_channels(out)
+        return x + out if self.add else out
+
+class C2f_ContMix(nn.Module):
+    """CSP Block using ContMixBlock + ContMixBottlenecks."""
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5,
+                 kernel_size=7, smk_size=5, num_heads=2,
+                 mlp_ratio=4, res_scale=True, ls_init_value=1e-5,
+                 drop_path=0.0, norm_layer=None, use_gemm=False,
+                 deploy=False, use_checkpoint=False):
+        super().__init__()
+        self.c = int(c2 * e)
+
+        # 第一步：通道压缩
+        self.cv1 = Conv(c1, 2 * self.c, 1, 1)
+
+        # 中间堆叠结构：使用 ContMixBottleneck 替代 Bottleneck
+        self.m = nn.ModuleList([
+            ContMixBottleneck(
+                c1=self.c, c2=self.c, shortcut=shortcut,
+                kernel_size=kernel_size, smk_size=smk_size, num_heads=num_heads,
+                mlp_ratio=mlp_ratio, res_scale=res_scale,
+                ls_init_value=ls_init_value, drop_path=drop_path,
+                norm_layer=norm_layer or LayerNorm2d, use_gemm=use_gemm,
+                deploy=deploy, use_checkpoint=use_checkpoint
+            ) for _ in range(n)
+        ])
+
+        # 融合输出通道
+        self.cv2 = Conv((2 + n) * self.c, c2, 1, 1)
+
+        # 第一层整体 ContMixBlock（可选，但你要求包含）
+        self.head = ContMixBlock(
+            dim=2 * self.c,
+            kernel_size=kernel_size,
+            smk_size=smk_size,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            res_scale=res_scale,
+            ls_init_value=ls_init_value,
+            drop_path=drop_path,
+            norm_layer=norm_layer or LayerNorm2d,
+            use_gemm=use_gemm,
+            deploy=deploy,
+            use_checkpoint=use_checkpoint
+        )
+
+    def forward(self, x):
+        x = self.cv1(x)
+        x = self.head(x)  # 第一层 ContMixBlock
+        y = list(x.chunk(2, dim=1))
+        for m in self.m:
+            y.append(m(y[-1]))
+        return self.cv2(torch.cat(y, dim=1))

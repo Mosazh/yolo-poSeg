@@ -99,6 +99,7 @@ from ultralytics.nn.modules import (
     ASPP, RFB, LightASPP,
     FDConvBlock,
     ARConvBlock,
+    C2f_ContMix,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1151,6 +1152,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             ASPP, RFB, LightASPP,
             FDConvBlock,
             ARConvBlock,
+            C2f_ContMix,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1175,6 +1177,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             CMRF,
             C2f_MultiOGA,
             C3STR,
+            C2f_ContMix,
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
