@@ -68,6 +68,8 @@ from .block import (
     FDConvBlock,
     ARConvBlock,
     C2f_ContMix,
+    C2frepghost,
+    SPPFI,
 )
 from .conv import (
     CBAM,
@@ -243,4 +245,6 @@ __all__ = (
     "ARConvBlock",  # ARConv
     "ContMixBlock",
     "C2f_ContMix",
+    "C2frepghost",
+    "SPPFI",  # SPPFI
 )

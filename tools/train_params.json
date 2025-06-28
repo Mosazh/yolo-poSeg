@@ -1,10 +1,6 @@
 {
     "model": {
-        "1": "yolov8-poseg",
-        "2": "yolov8-poseg_GAM",
-        "3": "yolov8-poseg_coordatt",
-        "4": "yolov8-poseg_ELA",
-        "5": "yolov8-poseg_MLKA"
+        "1": "yolov8-poseg_SPPFI"
     },
 
     "iouType": {
@@ -12,5 +8,8 @@
         "2": "Siou",
         "3": "Shape-iou",
         "4": "Powerful-iou"
+    },
+    "seed": {
+        "1": "1"
     }
 }

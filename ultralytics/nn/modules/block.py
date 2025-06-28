@@ -2064,3 +2064,105 @@ class C2f_ContMix(nn.Module):
         for m in self.m:
             y.append(m(y[-1]))
         return self.cv2(torch.cat(y, dim=1))
+
+
+# ------------------C2f_FrepGhost----------------------
+from .FrepGhost import RepGhostBottleneck
+class C2frepghost(nn.Module):
+    # CSP Bottleneck with 2 convolutions
+    def __init__(self, c1, c2, n=1, shortcut=False, g=1, e=0.5):  # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        self.c = int(c2 * e)  # hidden channels
+        self.cv1 = Conv(c1, 2 * self.c, 1, 1)
+        self.cv2 = Conv((2 + n) * self.c, c2, 1)  #
+        self.m = nn.ModuleList(RepGhostBottleneck(self.c, self.c, self.c,dw_kernel_size=((3),(3))) for _ in range(n))
+
+    def forward(self, x):
+        y = list(self.cv1(x).split((self.c, self.c), 1))
+        y.extend(m(y[-1]) for m in self.m)
+        return self.cv2(torch.cat(y, 1))
+
+
+# ----------------------SPPFI---------------------------
+class SEBlock(nn.Module):
+    def __init__(self, channels, reduction=16):
+        super().__init__()
+        hidden = max(1, channels // reduction)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Conv2d(channels, hidden, 1, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, channels, 1, bias=True),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        w = self.avg_pool(x)
+        w = self.fc(w)
+        return x * w
+
+class SPPFI(nn.Module):
+    def __init__(self, c1, c2, e=0.5, Attype='None', *args):
+        """
+        c1: 输入通道
+        c2: 输出通道
+        e : expansion ratio
+        reduction: attention的压缩比
+        """
+        super().__init__()
+        self.att = None
+        c_ = int(c2 * e)  # 中间通道数
+
+        # 1x1卷积调整
+        self.cv1 = nn.Conv2d(c1, c_, 1, 1, bias=False)
+        self.bn1 = nn.BatchNorm2d(c_)
+        self.act1 = nn.SiLU()
+
+        # 三个并联分支：不同感受野
+        self.branch3 = nn.Conv2d(c_, c_, 3, 1, 1, groups=c_, bias=False)
+        self.branch5 = nn.Conv2d(c_, c_, 3, 1, 2, dilation=2, groups=c_, bias=False)
+        self.branch7 = nn.Conv2d(c_, c_, 3, 1, 3, dilation=3, groups=c_, bias=False)
+
+        self.bn_b = nn.BatchNorm2d(c_ * 4)
+        self.act_b = nn.SiLU()
+
+        # 1x1融合
+        self.cv2 = nn.Conv2d(c_ * 4, c2, 1, 1, bias=False)
+        self.bn2 = nn.BatchNorm2d(c2)
+        self.act2 = nn.SiLU()
+
+        if Attype == 'SE':
+            # 使用SEBlock进行通道注意力
+            reduction = args[0] if args else 16  # 默认压缩比为16
+            self.att = SEBlock(c2, reduction)
+        elif Attype == 'CBAM':
+            from .conv import CBAM
+            kernel_size = args[0] if args else 7
+            # 使用CBAM进行通道和空间注意力
+            self.att = CBAM(c2, kernel_size)
+        elif Attype == 'CoordAtt':
+            from .coordatt import CoordAtt
+            reduction = args[0] if args else 32
+            self.att = CoordAtt(inp=c2, oup=c2, reduction=reduction)
+        elif Attype == 'SEAM':
+            from .seam import SEAM
+            n = args[0] if args else 1
+            reduction = args[1] if args else 16
+            self.att = SEAM(n=n, reduction=reduction)
+        elif Attype == 'SimAM':
+            # 使用 SimAM 注意力机制
+            self.att = SimAM(e_lambda=args[0] if args else 1e-4)
+
+    def forward(self, x):
+        x = self.act1(self.bn1(self.cv1(x)))
+        y1 = x
+        y2 = self.branch3(x)
+        y3 = self.branch5(x)
+        y4 = self.branch7(x)
+        y = torch.cat([y1, y2, y3, y4], 1)
+        y = self.act_b(self.bn_b(y))
+        y = self.act2(self.bn2(self.cv2(y)))
+        # 注意力
+        if self.att is not None:
+            y = self.att(y)
+        return y
