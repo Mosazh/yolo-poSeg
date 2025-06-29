@@ -2148,7 +2148,7 @@ class SPPFI(nn.Module):
             from .seam import SEAM
             n = args[0] if args else 1
             reduction = args[1] if args else 16
-            self.att = SEAM(n=n, reduction=reduction)
+            self.att = SEAM(c2, n=n, reduction=reduction)
         elif Attype == 'SimAM':
             # 使用 SimAM 注意力机制
             self.att = SimAM(e_lambda=args[0] if args else 1e-4)

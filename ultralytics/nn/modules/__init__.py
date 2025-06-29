@@ -130,6 +130,7 @@ from .MogaNet import C2f_MultiOGA, ChannelAggregationFFN, MultiOrderGatedAggrega
 from .FocalModulation import FocalModulation
 from .FDConv_initialversion import FDConv
 from .contmix import ContMixBlock
+from .DynamGSConv import DynamGSConv
 
 __all__ = (
     "Conv",
@@ -247,4 +248,5 @@ __all__ = (
     "C2f_ContMix",
     "C2frepghost",
     "SPPFI",  # SPPFI
+    "DynamGSConv",  # DynamGSConv (Dynamic Grouped Convolution
 )

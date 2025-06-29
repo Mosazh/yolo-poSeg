@@ -1,10 +1,12 @@
-from ultralytics.nn.modules import Conv, SimAM, SPPF
+from ultralytics.nn.modules import RepGSConv
 import torch
 
-x = torch.randn(1, 512, 20, 20)  # 假设输入尺寸
-# conv = Conv(128, 256, k=3, s=2, p=1)
-simam = SimAM(256)
-sppf = SPPF(512, 512, k=5)
-# print("Conv output shape:", conv(x).shape)
-print("SimAM output shape:", simam(x).shape)
-print("SPPF output shape:", sppf(x).shape)
+# 训练
+m = RepGSConv(64, 128, s=1)
+out = m(torch.randn(1, 64, 128, 128))
+print(out.shape)
+
+# 推理
+# m.switch_to_deploy()
+# out2 = m(torch.randn(1, 64, 128, 128))
+# print(out2.shape)

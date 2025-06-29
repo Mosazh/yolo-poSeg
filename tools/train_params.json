@@ -1,13 +1,14 @@
 {
     "model": {
-        "1": "yolov8-poseg_SPPFI"
+        "1": "yolov8-poseg_SPPFI_SE",
+        "2": "yolov8-poseg_SimAM",
+        "3": "yolov8-poseg_SPPFI_CBAM",
+        "4": "yolov8-poseg_SPPFI_SEAM",
+        "5": "yolov8-poseg_SPPFI_SimAM"
     },
 
     "iouType": {
-        "1": "Ciou",
-        "2": "Siou",
-        "3": "Shape-iou",
-        "4": "Powerful-iou"
+        "1": "Ciou"
     },
     "seed": {
         "1": "1"
