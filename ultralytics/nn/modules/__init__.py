@@ -70,6 +70,7 @@ from .block import (
     C2f_ContMix,
     C2frepghost,
     SPPFI,
+    SEBlock,
 )
 from .conv import (
     CBAM,
@@ -95,7 +96,7 @@ from .conv import (
     ELA,
     SPD,
     VoVGSCSP, VoVGSCSPC, GSConv,
-    PConv, PSCConv,
+    PConv,
 
 )
 from .head import OBB, Classify, Detect, Pose, PoSeg, RTDETRDecoder, Segment, WorldDetect, v10Detect
@@ -239,7 +240,7 @@ __all__ = (
     "FocalModulation",
     "SimSPPF",
     "C3STR", "SPPCSPC",
-    "PConv", "PSCConv",
+    "PConv",
     "ASPP", "RFB", "LightASPP",
     "FDConv",  # FDConv_initialversion
     "FDConvBlock",
@@ -249,4 +250,5 @@ __all__ = (
     "C2frepghost",
     "SPPFI",  # SPPFI
     "DynamGSConv",  # DynamGSConv (Dynamic Grouped Convolution
+    "SEBlock",  # SEBlock (Squeeze-and-Excitation Block)
 )

@@ -51,6 +51,7 @@ __all__ = (
     "SCDown",
     "TorchVision",
     "DCNv4_C2f",
+    "SEBlock",
 )
 
 

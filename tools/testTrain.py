@@ -52,7 +52,7 @@ def main(model="yolov8-poseg.yaml",
 
 
 if __name__ == '__main__':
-    MODEL = "yolov8-poseg_DynamGSConv.yaml"
+    MODEL = "yolov8-poseg_DynamGSConv_SE.yaml"
     DATA = "MKSD.yaml"
     EPOCHS = 1
     IMG_SIZE = 640

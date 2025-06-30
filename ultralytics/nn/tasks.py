@@ -95,7 +95,7 @@ from ultralytics.nn.modules import (
     FocalModulation,
     SimSPPF,
     C3STR, SPPCSPC,
-    PConv, PSCConv,
+    PConv,
     ASPP, RFB, LightASPP,
     FDConvBlock,
     ARConvBlock,
@@ -1311,7 +1311,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [ch[f], c2]
         elif m is MultiOrderGatedAggregation:
             args = [ch[f]]
-        elif m in {PConv, PSCConv}:
+        elif m in {PConv}:
             c2 = args[0]
             args = [ch[f], *args]
         # elif m is FDConvBlock:
